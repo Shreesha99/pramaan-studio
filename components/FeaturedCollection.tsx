@@ -2,7 +2,13 @@
 
 import Image from "next/image";
 import { Key, useEffect, useState } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
@@ -32,24 +38,30 @@ export default function FeaturedCollection() {
 
   // ✅ Load featured + visible products
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const q = query(
-          collection(db, "products"),
-          where("featured", "==", true),
-          where("showProduct", "==", true)
-        );
-        const querySnapshot = await getDocs(q);
-        setProducts(
-          querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-        );
-      } catch (err) {
-        showToast("Failed to load products.", "error");
-      } finally {
+    const q = query(
+      collection(db, "products"),
+      where("featured", "==", true),
+      where("showProduct", "==", true)
+    );
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const items = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setProducts(items);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Realtime product listener failed:", error);
+        showToast("Failed to sync products.", "error");
         setLoading(false);
       }
-    };
-    fetchProducts();
+    );
+
+    return () => unsubscribe(); // cleanup on unmount
   }, [showToast]);
 
   const getCartItem = (id: string, color?: string) =>

@@ -15,6 +15,10 @@ import {
 import { useCart } from "@/context/CartContext";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { useAuth } from "@/context/AuthContext";
+import Fuse from "fuse.js";
+import { db } from "@/lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
+import { useToast } from "@/context/ToastContext";
 
 export default function Header() {
   const {
@@ -29,13 +33,45 @@ export default function Header() {
   const { user, logout, openAuthModal } = useAuth();
 
   const [cartOpen, setCartOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const { showToast } = useToast();
 
   const drawerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const tlRef = useRef<gsap.core.Timeline | null>(null);
+  const cartTlRef = useRef<gsap.core.Timeline | null>(null);
+  const searchTlRef = useRef<gsap.core.Timeline | null>(null);
 
-  // Animate header
+  // 🔹 Load products once for searching
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const snapshot = await getDocs(collection(db, "products"));
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setAllProducts(data);
+    };
+    fetchProducts();
+  }, []);
+
+  // 🔹 Fuzzy search with Fuse.js
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const fuse = new Fuse(allProducts, {
+      keys: ["name", "category"],
+      threshold: 0.4, // fuzzy tolerance
+    });
+
+    const results = fuse.search(searchQuery.trim()).map((r) => r.item);
+    setSearchResults(results);
+  }, [searchQuery, allProducts]);
+  // Animate header entrance
   useEffect(() => {
     gsap.from("header", {
       y: -40,
@@ -51,20 +87,37 @@ export default function Header() {
     if (!drawer) return;
 
     const drawerWidth = drawer.offsetWidth;
-    if (!tlRef.current) {
+    if (!cartTlRef.current) {
       gsap.set(drawer, { x: drawerWidth, willChange: "transform" });
       const tl = gsap.timeline({ paused: true });
-      tl.to(drawer, {
-        x: 0,
-        duration: 0.55,
-        ease: "power4.out",
-      });
-      tlRef.current = tl;
+      tl.to(drawer, { x: 0, duration: 0.55, ease: "power4.out" });
+      cartTlRef.current = tl;
     }
 
-    if (cartOpen) tlRef.current.play();
-    else tlRef.current.reverse();
+    if (cartOpen) cartTlRef.current.play();
+    else cartTlRef.current.reverse();
   }, [cartOpen]);
+
+  // Animate search drawer
+  useEffect(() => {
+    const searchBar = searchRef.current;
+    if (!searchBar) return;
+
+    if (!searchTlRef.current) {
+      gsap.set(searchBar, { y: -80, opacity: 0 });
+      const tl = gsap.timeline({ paused: true });
+      tl.to(searchBar, {
+        y: 0,
+        opacity: 1,
+        duration: 0.4,
+        ease: "power3.out",
+      });
+      searchTlRef.current = tl;
+    }
+
+    if (searchOpen) searchTlRef.current.play();
+    else searchTlRef.current.reverse();
+  }, [searchOpen]);
 
   // Animate dropdown
   useEffect(() => {
@@ -85,6 +138,31 @@ export default function Header() {
     }
   }, [dropdownOpen]);
 
+  // ✅ Show welcome toast on login, but only once per session
+  useEffect(() => {
+    if (!user) return;
+
+    // Prevent duplicate toasts on refresh
+    const shownKey = `toastShownFor_${user.uid}`;
+    const hasShown = sessionStorage.getItem(shownKey);
+
+    if (hasShown) return; // already welcomed in this session
+
+    const creationTime = user.metadata?.creationTime;
+    const lastSignInTime = user.metadata?.lastSignInTime;
+
+    if (creationTime && creationTime === lastSignInTime) {
+      // New user
+      showToast("Welcome to PraMaan! 🎉", "success");
+    } else {
+      // Returning user
+      showToast(`Welcome back, ${user.displayName || "User"}!`, "success");
+    }
+
+    // Mark as shown for this session
+    sessionStorage.setItem(shownKey, "true");
+  }, [user]);
+
   // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -95,9 +173,7 @@ export default function Header() {
         setDropdownOpen(false);
       }
     };
-    if (dropdownOpen) {
-      document.addEventListener("click", handleClickOutside);
-    }
+    if (dropdownOpen) document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, [dropdownOpen]);
 
@@ -115,7 +191,7 @@ export default function Header() {
               priority
               className="w-9 h-9 object-contain"
             />
-            <span className="hidden md:inline text-xl font-bold tracking-tight">
+            <span className="hidden md:inline text-xl tracking-tight">
               PraMaan
             </span>
           </div>
@@ -129,7 +205,8 @@ export default function Header() {
 
           {/* Icons + Auth + Cart */}
           <div className="flex items-center gap-6 relative">
-            <button>
+            {/* 🔍 Search Icon */}
+            <button onClick={() => setSearchOpen(!searchOpen)}>
               <MagnifyingGlassIcon className="w-5 h-5 text-gray-700" />
             </button>
 
@@ -167,7 +244,17 @@ export default function Header() {
                       </p>
                     </div>
                     <button
-                      onClick={logout}
+                      onClick={async () => {
+                        try {
+                          await logout();
+                          showToast("Logged out successfully.", "success");
+                        } catch (err) {
+                          showToast(
+                            "Logout failed. Please try again.",
+                            "error"
+                          );
+                        }
+                      }}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
                     >
                       Logout
@@ -197,6 +284,72 @@ export default function Header() {
         </div>
       </header>
 
+      {/* 🔎 Search Drawer */}
+      {/* 🔍 Floating Smart Search Box */}
+      {searchOpen && (
+        <div
+          ref={searchRef}
+          className="fixed top-[15%] left-1/2 -translate-x-1/2 w-[90%] sm:w-[600px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-[120] p-5"
+        >
+          <div className="flex items-center gap-3">
+            <MagnifyingGlassIcon className="w-6 h-6 text-gray-600" />
+            <input
+              type="text"
+              placeholder="Search for products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 text-gray-800 placeholder-gray-400 text-base outline-none"
+              autoFocus
+            />
+            <button onClick={() => setSearchOpen(false)}>
+              <XMarkIcon className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+
+          {/* 🧩 Search Results */}
+          {searchQuery && (
+            <div className="mt-4 max-h-[250px] overflow-y-auto space-y-2">
+              {searchResults.length === 0 ? (
+                <p className="text-gray-400 text-sm text-center py-2">
+                  No matching products.
+                </p>
+              ) : (
+                searchResults.map((p) => {
+                  const variantColors = p.hasColors
+                    ? Object.keys(p.variants || {})
+                    : [];
+                  const img =
+                    p.hasColors && variantColors.length
+                      ? p.variants[variantColors[0]].images?.[0]
+                      : p.images?.[0];
+
+                  return (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition"
+                    >
+                      {img ? (
+                        <img
+                          src={img}
+                          alt={p.name}
+                          className="w-12 h-12 rounded-md object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-100 rounded-md" />
+                      )}
+                      <div>
+                        <p className="font-medium text-sm">{p.name}</p>
+                        <p className="text-xs text-gray-500">{p.category}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 🛒 Cart Drawer */}
       <div
         ref={drawerRef}
@@ -217,7 +370,6 @@ export default function Header() {
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {cart.map((item) => {
               const atMax = item.stock !== undefined && item.qty >= item.stock;
-
               return (
                 <div
                   key={`${item.id}-${item.color || "default"}`}
@@ -305,10 +457,13 @@ export default function Header() {
       </div>
 
       {/* Overlay */}
-      {cartOpen && (
+      {(cartOpen || searchOpen) && (
         <div
           className="fixed inset-0 bg-black/30 backdrop-blur-[1px] z-[90]"
-          onClick={() => setCartOpen(false)}
+          onClick={() => {
+            setCartOpen(false);
+            setSearchOpen(false);
+          }}
         />
       )}
     </>

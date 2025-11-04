@@ -45,17 +45,27 @@ export default function Hero() {
     }, heroRef);
 
     // Marquee animation
+    // ✅ Seamless marquee scroll
     const ticker = tickerRef.current;
     if (ticker) {
-      const distance = ticker.scrollWidth / 2;
-      const tween = gsap.to(ticker, {
-        x: -distance,
-        ease: "none",
+      const content = ticker.innerHTML; // duplicate content
+      ticker.innerHTML = content + content;
+
+      const totalWidth = ticker.scrollWidth / 2;
+
+      gsap.to(ticker, {
+        x: `-=${totalWidth}`,
         duration: 30,
+        ease: "none",
         repeat: -1,
+        modifiers: {
+          x: gsap.utils.unitize((x: string) => parseFloat(x) % -totalWidth),
+        },
       });
-      ticker.addEventListener("mouseenter", () => tween.pause());
-      ticker.addEventListener("mouseleave", () => tween.resume());
+
+      // Optional pause on hover
+      ticker.addEventListener("mouseenter", () => gsap.globalTimeline.pause());
+      ticker.addEventListener("mouseleave", () => gsap.globalTimeline.resume());
     }
 
     // Cursor + Trail logic
