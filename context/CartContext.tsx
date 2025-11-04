@@ -12,19 +12,19 @@ import {
   doc,
   setDoc,
   deleteDoc,
-  getDocs,
   collection,
   onSnapshot,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 
-interface CartItem {
+export interface CartItem {
   id: string;
   name: string;
   price: number;
   img: string;
   qty: number;
+  color?: string; // ✅ added for variant color
   stock?: number;
 }
 
@@ -33,9 +33,9 @@ interface CartContextType {
   totalQty: number;
   totalAmount: number;
   addToCart: (item: CartItem) => void;
-  removeFromCart: (id: string) => void;
-  increaseQty: (id: string) => void;
-  decreaseQty: (id: string) => void;
+  removeFromCart: (id: string, color?: string) => void;
+  increaseQty: (id: string, color?: string) => void;
+  decreaseQty: (id: string, color?: string) => void;
   clearCart: () => void;
 }
 
@@ -45,18 +45,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // --- Derived values ---
   const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
   const totalAmount = cart.reduce(
     (sum, item) => sum + item.qty * item.price,
     0
   );
 
-  // --- Firestore Sync Helpers ---
   const userCartRef = user ? collection(db, "users", user.uid, "cart") : null;
 
-  // Load user cart on login
-  // Load user cart on login
+  // --- Load user cart from Firestore ---
   useEffect(() => {
     if (!userCartRef) {
       setCart([]);
@@ -75,20 +72,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => unsub();
   }, [user]);
 
-  // --- Local Update + Firestore Sync ---
+  // --- Firestore helpers ---
+  const getFirestoreId = (id: string, color?: string) =>
+    color && color !== "default" ? `${id}__${color}` : id;
+
   const syncToFirestore = useCallback(
     async (item: CartItem) => {
       if (!userCartRef) return;
-      const docRef = doc(userCartRef, item.id);
+      const docRef = doc(userCartRef, getFirestoreId(item.id, item.color));
       await setDoc(docRef, item);
     },
     [userCartRef]
   );
 
   const deleteFromFirestore = useCallback(
-    async (id: string) => {
+    async (id: string, color?: string) => {
       if (!userCartRef) return;
-      await deleteDoc(doc(userCartRef, id));
+      const docRef = doc(userCartRef, getFirestoreId(id, color));
+      await deleteDoc(docRef);
     },
     [userCartRef]
   );
@@ -96,12 +97,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // --- Cart Actions ---
   const addToCart = (item: CartItem) => {
     setCart((prev) => {
-      const exists = prev.find((p) => p.id === item.id);
-      if (exists) {
+      const existing = prev.find(
+        (p) => p.id === item.id && p.color === item.color
+      );
+      if (existing) {
         const updated = prev.map((p) =>
-          p.id === item.id ? { ...p, qty: p.qty + 1 } : p
+          p.id === item.id && p.color === item.color
+            ? { ...p, qty: p.qty + 1 }
+            : p
         );
-        syncToFirestore({ ...exists, qty: exists.qty + 1 });
+        syncToFirestore({ ...existing, qty: existing.qty + 1 });
         return updated;
       } else {
         syncToFirestore(item);
@@ -110,30 +115,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const removeFromCart = (id: string) => {
-    setCart((prev) => prev.filter((p) => p.id !== id));
-    deleteFromFirestore(id);
+  const removeFromCart = (id: string, color?: string) => {
+    setCart((prev) => prev.filter((p) => !(p.id === id && p.color === color)));
+    deleteFromFirestore(id, color);
   };
 
-  const increaseQty = (id: string) => {
+  const increaseQty = (id: string, color?: string) => {
     setCart((prev) => {
       const updated = prev.map((p) =>
-        p.id === id ? { ...p, qty: p.qty + 1 } : p
+        p.id === id && p.color === color ? { ...p, qty: p.qty + 1 } : p
       );
-      const item = updated.find((i) => i.id === id);
+      const item = updated.find((i) => i.id === id && i.color === color);
       if (item) syncToFirestore(item);
       return updated;
     });
   };
 
-  const decreaseQty = (id: string) => {
+  const decreaseQty = (id: string, color?: string) => {
     setCart((prev) => {
       const updated = prev
-        .map((p) => (p.id === id ? { ...p, qty: p.qty - 1 } : p))
+        .map((p) =>
+          p.id === id && p.color === color ? { ...p, qty: p.qty - 1 } : p
+        )
         .filter((p) => p.qty > 0);
-      const item = updated.find((i) => i.id === id);
+      const item = updated.find((i) => i.id === id && i.color === color);
       if (item) syncToFirestore(item);
-      else deleteFromFirestore(id);
+      else deleteFromFirestore(id, color);
       return updated;
     });
   };
@@ -141,7 +148,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clearCart = () => {
     setCart([]);
     if (userCartRef) {
-      cart.forEach((i) => deleteFromFirestore(i.id));
+      cart.forEach((i) => deleteFromFirestore(i.id, i.color));
     }
   };
 

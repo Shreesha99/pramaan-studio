@@ -105,7 +105,7 @@ export default function Header() {
     <>
       <header className="py-5 border-b border-gray-100 bg-white sticky top-0 z-50 backdrop-blur-md">
         <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between">
-          {/* ✅ Brand Logo + Text */}
+          {/* ✅ Brand Logo */}
           <div className="flex items-center gap-2">
             <Image
               src="/assets/img/nav-logo.png"
@@ -120,7 +120,7 @@ export default function Header() {
             </span>
           </div>
 
-          {/* Navigation Links */}
+          {/* Navigation */}
           <nav className="hidden md:flex items-center gap-10 text-sm font-medium text-gray-700">
             <a href="#">Shop</a>
             <a href="#">On Sale</a>
@@ -133,7 +133,7 @@ export default function Header() {
               <MagnifyingGlassIcon className="w-5 h-5 text-gray-700" />
             </button>
 
-            {/* Auth */}
+            {/* Auth Section */}
             {user ? (
               <div className="relative">
                 <button
@@ -215,44 +215,81 @@ export default function Header() {
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {cart.map((item) => (
-              <div
-                key={item.id}
-                className="flex gap-4 border-b border-gray-100 pb-4"
-              >
-                <img
-                  src={item.img}
-                  alt={item.name}
-                  className="w-16 h-16 rounded-md object-cover"
-                />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-sm">{item.name}</h3>
-                  <p className="text-xs text-gray-500">
-                    {formatCurrency(item.price)}
-                  </p>
-                  <div className="flex items-center mt-2">
-                    <button
-                      className="p-1 border border-gray-300 rounded-l"
-                      onClick={() => decreaseQty(item.id)}
-                    >
-                      <MinusIcon className="w-3 h-3 text-gray-700" />
-                    </button>
-                    <span className="px-3 border-t border-b border-gray-300 text-sm">
-                      {item.qty}
-                    </span>
-                    <button
-                      className="p-1 border border-gray-300 rounded-r"
-                      onClick={() => increaseQty(item.id)}
-                    >
-                      <PlusIcon className="w-3 h-3 text-gray-700" />
-                    </button>
+            {cart.map((item) => {
+              const atMax = item.stock !== undefined && item.qty >= item.stock;
+
+              return (
+                <div
+                  key={`${item.id}-${item.color || "default"}`}
+                  className="flex gap-4 border-b border-gray-100 pb-4"
+                >
+                  {item.img ? (
+                    <img
+                      src={item.img}
+                      alt={item.name}
+                      className="w-16 h-16 rounded-md object-cover"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 bg-gray-100 rounded-md flex items-center justify-center text-gray-400 text-xs">
+                      No Image
+                    </div>
+                  )}
+
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm">
+                      {item.name}
+                      {item.color && (
+                        <span className="ml-1 text-xs text-gray-400">
+                          ({item.color})
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      {formatCurrency(item.price)}
+                    </p>
+
+                    <div className="flex items-center mt-2">
+                      <button
+                        className="p-1 border border-gray-300 rounded-l disabled:opacity-50"
+                        onClick={() => decreaseQty(item.id, item.color)}
+                        disabled={item.qty <= 1}
+                      >
+                        <MinusIcon className="w-3 h-3 text-gray-700" />
+                      </button>
+                      <span className="px-3 border-t border-b border-gray-300 text-sm">
+                        {item.qty}
+                      </span>
+                      <button
+                        className={`p-1 border border-gray-300 rounded-r ${
+                          atMax
+                            ? "opacity-50 cursor-not-allowed"
+                            : "hover:bg-gray-100"
+                        }`}
+                        onClick={() =>
+                          !atMax && increaseQty(item.id, item.color)
+                        }
+                        disabled={atMax}
+                      >
+                        <PlusIcon className="w-3 h-3 text-gray-700" />
+                      </button>
+                    </div>
+
+                    {atMax && (
+                      <p className="text-[10px] text-red-500 mt-1">
+                        Max stock reached
+                      </p>
+                    )}
                   </div>
+
+                  <button
+                    onClick={() => removeFromCart(item.id, item.color)}
+                    title="Remove from cart"
+                  >
+                    <TrashIcon className="w-4 h-4 text-gray-500 hover:text-red-500" />
+                  </button>
                 </div>
-                <button onClick={() => removeFromCart(item.id)}>
-                  <TrashIcon className="w-4 h-4 text-gray-500 hover:text-red-500" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

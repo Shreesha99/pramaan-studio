@@ -1,13 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { Key, useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
-import { TrashIcon } from "@heroicons/react/24/outline";
+import {
+  TrashIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "@heroicons/react/24/outline";
 import { gsap } from "gsap";
 import { formatCurrency } from "@/lib/formatCurrency";
 
@@ -19,12 +23,21 @@ export default function FeaturedCollection() {
   const { showToast } = useToast();
   const { user, openAuthModal } = useAuth();
 
+  const [activeImageIndex, setActiveImageIndex] = useState<{
+    [key: string]: number;
+  }>({});
+  const [selectedColor, setSelectedColor] = useState<{
+    [key: string]: string;
+  }>({});
+
+  // ✅ Load featured + visible products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const q = query(
           collection(db, "products"),
-          where("featured", "==", true)
+          where("featured", "==", true),
+          where("showProduct", "==", true)
         );
         const querySnapshot = await getDocs(q);
         setProducts(
@@ -39,9 +52,28 @@ export default function FeaturedCollection() {
     fetchProducts();
   }, [showToast]);
 
-  const getCartItem = (id: string) => cart.find((item) => item.id === id);
+  const getCartItem = (id: string, color?: string) =>
+    cart.find((item) => item.id === id && item.color === color);
 
-  const handleAddToCart = async (p: any) => {
+  // ✅ Add to cart with correct variant image & stock
+  const handleAddToCart = (p: any) => {
+    const hasColors = p.hasColors;
+    const selectedClr = selectedColor[p.id];
+
+    if (hasColors && !selectedClr) {
+      showToast("Please select a color before adding to cart.", "info");
+      return;
+    }
+
+    const color = hasColors ? selectedClr : "default";
+    const variant = hasColors ? p.variants?.[color] : null;
+
+    const availableStock = hasColors ? variant?.stock ?? 0 : p.stock ?? 0;
+
+    const image = hasColors
+      ? variant?.images?.[0] || "/placeholder.png"
+      : p.images?.[0] || "/placeholder.png";
+
     try {
       if (!user) {
         showToast("Please sign in to add to cart.", "info");
@@ -49,13 +81,17 @@ export default function FeaturedCollection() {
         return;
       }
 
-      const existing = getCartItem(p.id);
-      const availableStock = p.stock ?? 0;
+      if (availableStock <= 0) {
+        showToast("This variant is out of stock.", "info");
+        return;
+      }
+
+      const existing = getCartItem(p.id, color);
 
       if (existing && existing.qty >= availableStock) {
         showToast(`Only ${availableStock} available in stock.`, "info");
         gsap.fromTo(
-          `#qty-${p.id}`,
+          `#qty-${p.id}-${color}`,
           { scale: 1 },
           { scale: 1.2, yoyo: true, repeat: 1, duration: 0.2 }
         );
@@ -63,56 +99,116 @@ export default function FeaturedCollection() {
       }
 
       if (existing) {
-        increaseQty(p.id);
+        increaseQty(p.id, color);
         gsap.fromTo(
-          `#qty-${p.id}`,
+          `#qty-${p.id}-${color}`,
           { scale: 1.3 },
           { scale: 1, duration: 0.25, ease: "back.out(2)" }
         );
-        showToast(`Increased ${p.name} quantity`, "success");
+        showToast(`Increased ${p.name} (${color}) quantity`, "success");
       } else {
-        addToCart({ ...p, qty: 1 });
-        showToast(`${p.name} added to cart!`, "success");
+        addToCart({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          img: image,
+          qty: 1,
+          color,
+          stock: availableStock,
+        });
+        showToast(`${p.name} (${color}) added to cart!`, "success");
       }
-    } catch {
+    } catch (err) {
+      console.error(err);
       showToast("Something went wrong.", "error");
     }
   };
 
-  const handleRemoveFromCart = (id: string, name: string) => {
-    removeFromCart(id);
-    showToast(`${name} removed from cart.`, "info");
+  const handleRemoveFromCart = (id: string, name: string, color?: string) => {
+    removeFromCart(id, color);
+    showToast(`${name} (${color}) removed from cart.`, "info");
+  };
+
+  const handlePrevImage = (productId: string, total: number) => {
+    setActiveImageIndex((prev) => ({
+      ...prev,
+      [productId]: ((prev[productId] ?? 0) - 1 + total) % total,
+    }));
+  };
+
+  const handleNextImage = (productId: string, total: number) => {
+    setActiveImageIndex((prev) => ({
+      ...prev,
+      [productId]: ((prev[productId] ?? 0) + 1) % total,
+    }));
   };
 
   return (
     <section className="max-w-[1200px] mx-auto px-6 py-16">
       <h2 className="text-3xl font-bold uppercase mb-8 text-center">
-        Our Brand Featured Collection
+        Our Featured Collection
       </h2>
 
       {loading ? (
         <p className="text-center text-gray-500">Loading...</p>
+      ) : products.length === 0 ? (
+        <p className="text-center text-gray-400">No featured products yet.</p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
           {products.map((p) => {
-            const item = getCartItem(p.id);
-            const availableStock = p.stock ?? 0;
+            const color =
+              selectedColor[p.id] ||
+              (p.hasColors ? Object.keys(p.variants || {})[0] : "default");
+            const variant = p.variants?.[color];
+            const availableStock = variant?.stock ?? 0;
+
+            const images =
+              Array.isArray(variant?.images) && variant.images.length > 0
+                ? variant.images
+                : Array.isArray(p.images)
+                ? p.images
+                : [];
+
+            const activeIndex = activeImageIndex[p.id] ?? 0;
+            const displayImg =
+              images.length > 0 ? images[activeIndex] : "/placeholder.png";
+
+            const item = getCartItem(p.id, color);
 
             return (
               <div
-                key={p.id}
+                key={p.id + color}
                 className="bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition flex flex-col"
               >
-                <div className="w-full h-[400px] overflow-hidden">
+                {/* Product Image Carousel */}
+                <div className="relative w-full h-[400px] overflow-hidden group">
                   <Image
-                    src={p.img}
+                    src={displayImg}
                     alt={p.name}
                     width={400}
                     height={500}
-                    className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
+                    className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                   />
+
+                  {images.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => handlePrevImage(p.id, images.length)}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition"
+                      >
+                        <ChevronLeftIcon className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => handleNextImage(p.id, images.length)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition"
+                      >
+                        <ChevronRightIcon className="w-5 h-5" />
+                      </button>
+                    </>
+                  )}
                 </div>
 
+                {/* Product Info */}
                 <div className="p-4 flex flex-col flex-1 justify-between">
                   <div className="text-center">
                     <h3 className="font-medium text-lg">{p.name}</h3>
@@ -124,8 +220,33 @@ export default function FeaturedCollection() {
                         ? `In stock: ${availableStock}`
                         : "Out of stock"}
                     </p>
+
+                    {/* Color selector */}
+                    {p.hasColors && p.variants && (
+                      <div className="flex justify-center gap-2 mt-3">
+                        {Object.keys(p.variants).map((clr) => (
+                          <button
+                            key={clr}
+                            onClick={() =>
+                              setSelectedColor((prev) => ({
+                                ...prev,
+                                [p.id]: clr,
+                              }))
+                            }
+                            className={`w-6 h-6 rounded-full border-2 ${
+                              selectedColor[p.id] === clr
+                                ? "border-black scale-110"
+                                : "border-gray-300"
+                            } transition-transform`}
+                            style={{ backgroundColor: clr }}
+                            title={clr}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
 
+                  {/* Add to cart section */}
                   <div className="mt-4 relative min-h-[48px] flex items-center justify-center">
                     {availableStock === 0 ? (
                       <span className="text-red-500 text-sm font-semibold">
@@ -139,35 +260,35 @@ export default function FeaturedCollection() {
                         Add to Cart
                       </button>
                     ) : (
-                      <>
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => decreaseQty(item.id)}
-                            className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-lg font-semibold hover:bg-gray-100 transition"
-                          >
-                            −
-                          </button>
-                          <span
-                            id={`qty-${p.id}`}
-                            className="w-8 text-center font-semibold text-sm select-none"
-                          >
-                            {item.qty}
-                          </span>
-                          <button
-                            onClick={() => handleAddToCart(p)}
-                            className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-lg font-semibold hover:bg-gray-100 transition"
-                          >
-                            +
-                          </button>
-                        </div>
+                      <div className="flex items-center justify-center gap-2 relative">
                         <button
-                          onClick={() => handleRemoveFromCart(p.id, p.name)}
-                          className="absolute right-0 w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 hover:bg-red-100 transition"
+                          onClick={() => decreaseQty(item.id, color)}
+                          className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-lg font-semibold hover:bg-gray-100 transition"
+                        >
+                          −
+                        </button>
+                        <span
+                          id={`qty-${p.id}-${color}`}
+                          className="w-8 text-center font-semibold text-sm select-none"
+                        >
+                          {item.qty}
+                        </span>
+                        <button
+                          onClick={() => handleAddToCart(p)}
+                          className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-lg font-semibold hover:bg-gray-100 transition"
+                        >
+                          +
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleRemoveFromCart(p.id, p.name, color)
+                          }
+                          className="absolute -right-10 w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 hover:bg-red-100 transition"
                           title="Remove from cart"
                         >
                           <TrashIcon className="w-4 h-4 text-red-500" />
                         </button>
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
