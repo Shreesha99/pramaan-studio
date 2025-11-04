@@ -1,8 +1,10 @@
 import "./globals.css";
 import { Poppins } from "next/font/google";
-import LenisProvider from "./providers/LenisProvider"; // 👈 import the wrapper
+import LenisProvider from "./providers/LenisProvider";
 import { CartProvider } from "@/context/CartContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import GlobalAuthModal from "@/components/GlobalAuthModal";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -17,11 +19,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`{${poppins.className}} bg-white text-gray-900`}>
-        <ToastProvider>
-          <CartProvider>
-            <LenisProvider>{children}</LenisProvider>{" "}
-          </CartProvider>
-        </ToastProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <CartProvider>
+              <LenisProvider>
+                {children}
+                <GlobalAuthModal />
+              </LenisProvider>{" "}
+            </CartProvider>
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );

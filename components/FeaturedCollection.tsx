@@ -6,6 +6,7 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
+import { useAuth } from "@/context/AuthContext";
 import { TrashIcon } from "@heroicons/react/24/outline";
 import { gsap } from "gsap";
 import { formatCurrency } from "@/lib/formatCurrency";
@@ -16,8 +17,8 @@ export default function FeaturedCollection() {
   const { cart, addToCart, removeFromCart, increaseQty, decreaseQty } =
     useCart();
   const { showToast } = useToast();
+  const { user, openAuthModal } = useAuth();
 
-  // Load featured products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -40,11 +41,15 @@ export default function FeaturedCollection() {
 
   const getCartItem = (id: string) => cart.find((item) => item.id === id);
 
-  const handleAddToCart = (p: any) => {
+  const handleAddToCart = async (p: any) => {
     try {
-      const existing = getCartItem(p.id);
+      if (!user) {
+        showToast("Please sign in to add to cart.", "info");
+        openAuthModal();
+        return;
+      }
 
-      // 🧠 Check stock
+      const existing = getCartItem(p.id);
       const availableStock = p.stock ?? 0;
 
       if (existing && existing.qty >= availableStock) {
@@ -98,7 +103,6 @@ export default function FeaturedCollection() {
                 key={p.id}
                 className="bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition flex flex-col"
               >
-                {/* Product image */}
                 <div className="w-full h-[400px] overflow-hidden">
                   <Image
                     src={p.img}
@@ -109,7 +113,6 @@ export default function FeaturedCollection() {
                   />
                 </div>
 
-                {/* Product info */}
                 <div className="p-4 flex flex-col flex-1 justify-between">
                   <div className="text-center">
                     <h3 className="font-medium text-lg">{p.name}</h3>
@@ -123,7 +126,6 @@ export default function FeaturedCollection() {
                     </p>
                   </div>
 
-                  {/* CART CONTROLS */}
                   <div className="mt-4 relative min-h-[48px] flex items-center justify-center">
                     {availableStock === 0 ? (
                       <span className="text-red-500 text-sm font-semibold">
@@ -138,7 +140,6 @@ export default function FeaturedCollection() {
                       </button>
                     ) : (
                       <>
-                        {/* Centered Quantity Controls */}
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => decreaseQty(item.id)}
@@ -146,14 +147,12 @@ export default function FeaturedCollection() {
                           >
                             −
                           </button>
-
                           <span
                             id={`qty-${p.id}`}
                             className="w-8 text-center font-semibold text-sm select-none"
                           >
                             {item.qty}
                           </span>
-
                           <button
                             onClick={() => handleAddToCart(p)}
                             className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-lg font-semibold hover:bg-gray-100 transition"
@@ -161,8 +160,6 @@ export default function FeaturedCollection() {
                             +
                           </button>
                         </div>
-
-                        {/* Delete Icon fixed to right */}
                         <button
                           onClick={() => handleRemoveFromCart(p.id, p.name)}
                           className="absolute right-0 w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 hover:bg-red-100 transition"

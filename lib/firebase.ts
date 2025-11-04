@@ -1,6 +1,7 @@
 // lib/firebase.ts
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -13,17 +14,16 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID!,
 };
 
-// Ensure we don't reinitialize Firebase on hot reload
+// Avoid reinitialization on hot reload
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Firestore instance
-const db = getFirestore(app);
+// Export Firestore & Auth
+export const db = getFirestore(app);
+export const auth = getAuth(app);
 
-// Optional: Initialize Analytics only in the browser
+// Optional: Enable analytics only in browser
 if (typeof window !== "undefined") {
   isSupported().then((supported) => {
     if (supported) getAnalytics(app);
   });
 }
-
-export { db };

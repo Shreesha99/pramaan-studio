@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { gsap } from "gsap";
 import {
   MagnifyingGlassIcon,
@@ -9,9 +10,11 @@ import {
   TrashIcon,
   PlusIcon,
   MinusIcon,
+  UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import { useCart } from "@/context/CartContext";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Header() {
   const {
@@ -22,9 +25,17 @@ export default function Header() {
     totalQty,
     totalAmount,
   } = useCart();
-  const [cartOpen, setCartOpen] = useState(false);
-  const drawerRef = useRef<HTMLDivElement>(null);
 
+  const { user, logout, openAuthModal } = useAuth();
+
+  const [cartOpen, setCartOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const tlRef = useRef<gsap.core.Timeline | null>(null);
+
+  // Animate header
   useEffect(() => {
     gsap.from("header", {
       y: -40,
@@ -34,32 +45,146 @@ export default function Header() {
     });
   }, []);
 
+  // Animate cart drawer
   useEffect(() => {
-    if (drawerRef.current)
-      gsap.to(drawerRef.current, {
-        x: cartOpen ? 0 : "100%",
-        duration: 0.6,
-        ease: cartOpen ? "power3.out" : "power3.in",
+    const drawer = drawerRef.current;
+    if (!drawer) return;
+
+    const drawerWidth = drawer.offsetWidth;
+    if (!tlRef.current) {
+      gsap.set(drawer, { x: drawerWidth, willChange: "transform" });
+      const tl = gsap.timeline({ paused: true });
+      tl.to(drawer, {
+        x: 0,
+        duration: 0.55,
+        ease: "power4.out",
       });
+      tlRef.current = tl;
+    }
+
+    if (cartOpen) tlRef.current.play();
+    else tlRef.current.reverse();
   }, [cartOpen]);
+
+  // Animate dropdown
+  useEffect(() => {
+    if (!dropdownRef.current) return;
+    if (dropdownOpen) {
+      gsap.fromTo(
+        dropdownRef.current,
+        { opacity: 0, y: -5 },
+        { opacity: 1, y: 0, duration: 0.25, ease: "power2.out" }
+      );
+    } else {
+      gsap.to(dropdownRef.current, {
+        opacity: 0,
+        y: -5,
+        duration: 0.2,
+        ease: "power2.in",
+      });
+    }
+  }, [dropdownOpen]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !(dropdownRef.current as HTMLElement).contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    if (dropdownOpen) {
+      document.addEventListener("click", handleClickOutside);
+    }
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [dropdownOpen]);
 
   return (
     <>
-      <header className="py-6 border-b border-gray-100 bg-white sticky top-0 z-50 backdrop-blur-md">
+      <header className="py-5 border-b border-gray-100 bg-white sticky top-0 z-50 backdrop-blur-md">
         <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between">
-          <div className="text-2xl font-bold tracking-tight">C.</div>
+          {/* ✅ Brand Logo + Text */}
+          <div className="flex items-center gap-2">
+            <Image
+              src="/assets/img/nav-logo.png"
+              alt="PraMaan Logo"
+              width={36}
+              height={36}
+              priority
+              className="w-9 h-9 object-contain"
+            />
+            <span className="hidden md:inline text-xl font-bold tracking-tight">
+              PraMaan
+            </span>
+          </div>
 
+          {/* Navigation Links */}
           <nav className="hidden md:flex items-center gap-10 text-sm font-medium text-gray-700">
             <a href="#">Shop</a>
             <a href="#">On Sale</a>
             <a href="#">New Arrivals</a>
           </nav>
 
-          <div className="flex items-center gap-6">
+          {/* Icons + Auth + Cart */}
+          <div className="flex items-center gap-6 relative">
             <button>
               <MagnifyingGlassIcon className="w-5 h-5 text-gray-700" />
             </button>
 
+            {/* Auth */}
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center gap-1"
+                >
+                  {user.photoURL ? (
+                    <Image
+                      src={user.photoURL}
+                      alt="User avatar"
+                      width={28}
+                      height={28}
+                      className="rounded-full border border-gray-300"
+                    />
+                  ) : (
+                    <UserCircleIcon className="w-7 h-7 text-gray-700" />
+                  )}
+                </button>
+
+                {dropdownOpen && (
+                  <div
+                    ref={dropdownRef}
+                    className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-[150]"
+                  >
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-gray-800">
+                        {user.displayName || "User"}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {user.email || "Google User"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={logout}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={openAuthModal}
+                className="text-sm font-semibold text-gray-700 border px-3 py-1 rounded-full hover:bg-gray-100 transition"
+              >
+                Login
+              </button>
+            )}
+
+            {/* Cart Button */}
             <button className="relative" onClick={() => setCartOpen(true)}>
               <ShoppingBagIcon className="w-5 h-5 text-gray-700" />
               {totalQty > 0 && (
@@ -72,10 +197,10 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Cart Drawer */}
+      {/* 🛒 Cart Drawer */}
       <div
         ref={drawerRef}
-        className="fixed top-0 right-0 h-full w-[90%] sm:w-[400px] bg-white shadow-2xl z-[100] translate-x-full flex flex-col"
+        className="cart-drawer fixed top-0 right-0 h-full w-[90%] sm:w-[400px] bg-white shadow-2xl z-[100] flex flex-col"
       >
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
           <h2 className="text-lg font-semibold">Your Cart</h2>
@@ -142,6 +267,7 @@ export default function Header() {
         </div>
       </div>
 
+      {/* Overlay */}
       {cartOpen && (
         <div
           className="fixed inset-0 bg-black/30 backdrop-blur-[1px] z-[90]"

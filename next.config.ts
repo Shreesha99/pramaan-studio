@@ -2,6 +2,7 @@
 const nextConfig = {
   images: {
     remotePatterns: [
+      // ✅ Product image sources
       {
         protocol: "https",
         hostname: "images.unsplash.com",
@@ -13,6 +14,12 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "images.pexels.com",
+      },
+
+      // ✅ Google profile pictures (for Firebase / Google login)
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
       },
     ],
   },

@@ -9,24 +9,23 @@ body {
   @apply bg-white text-gray-900;
 }
 
-@keyframes ticker-scroll {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+.cart-drawer {
+  backface-visibility: hidden;
+  will-change: transform;
+  transform: translate3d(100%, 0, 0);
+  transition: none !important;
 }
 
-.ticker {
-  display: flex;
-  width: 200%;
-  animation: ticker-scroll 25s linear infinite;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-
-.ticker__text {
-  display: flex;
-  flex-shrink: 0;
-  min-width: 50%;
-  justify-content: space-around;
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
 }
