@@ -11,6 +11,11 @@ const poppins = Poppins({
   weight: ["400", "500", "600", "700"],
 });
 
+export const metadata = {
+  title: "PraMaan",
+  description: "Shop the finest fashion collections.",
+};
+
 export default function RootLayout({
   children,
 }: {
