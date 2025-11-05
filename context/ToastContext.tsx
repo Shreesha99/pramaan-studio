@@ -50,6 +50,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
 
+    // 🎉 Confetti trigger if it's the new-user toast
+    if (type === "success" && message.includes("Welcome to PraMaan")) {
+      // Delay slightly so confetti appears where toast is rendered
+      setTimeout(() => {
+        const toastEl = document.getElementById(`toast-${id}`);
+        if (toastEl) {
+          const rect = toastEl.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          triggerConfetti(centerX, centerY);
+        }
+      }, 150);
+    }
+
     // Auto remove after 3 seconds
     setTimeout(() => removeToast(id), 3000);
   };
@@ -89,6 +103,52 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       default:
         return <InformationCircleIcon className="w-5 h-5 text-blue-500" />;
     }
+  };
+
+  // 🎉 Confetti animation for new users
+  const triggerConfetti = (x: number, y: number) => {
+    const colors = ["#FFC700", "#FF0000", "#2E3192", "#41BBC7", "#7F00FF"];
+    const numParticles = 20;
+    const container = document.createElement("div");
+    container.style.position = "fixed";
+    container.style.left = "0";
+    container.style.top = "0";
+    container.style.pointerEvents = "none";
+    container.style.width = "100%";
+    container.style.height = "100%";
+    container.style.overflow = "hidden";
+    container.style.zIndex = "10000";
+    document.body.appendChild(container);
+
+    for (let i = 0; i < numParticles; i++) {
+      const el = document.createElement("div");
+      el.style.position = "absolute";
+      el.style.width = "6px";
+      el.style.height = "10px";
+      el.style.backgroundColor =
+        colors[Math.floor(Math.random() * colors.length)];
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      el.style.borderRadius = "2px";
+      container.appendChild(el);
+
+      const dx = gsap.utils.random(-120, 120);
+      const dy = gsap.utils.random(-180, -60);
+      const rot = gsap.utils.random(0, 720);
+
+      gsap.to(el, {
+        x: dx,
+        y: dy,
+        rotation: rot,
+        duration: gsap.utils.random(1.2, 1.8),
+        ease: "power3.out",
+        opacity: 0,
+        onComplete: () => el.remove(),
+      });
+    }
+
+    // Remove container after particles are gone
+    setTimeout(() => container.remove(), 2000);
   };
 
   return (

@@ -22,6 +22,8 @@ export default function AuthModal({
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [timer, setTimer] = useState(90);
+  const [isResendDisabled, setIsResendDisabled] = useState(true);
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Animate modal
@@ -35,32 +37,23 @@ export default function AuthModal({
     }
   }, [isOpen]);
 
+  // Initialize reCAPTCHA
   useEffect(() => {
     if (!isOpen || typeof window === "undefined" || !auth) return;
 
     const initRecaptcha = async () => {
       try {
-        // If already exists, reuse
         if ((window as any).recaptchaVerifier) return;
 
-        const verifier = new RecaptchaVerifier(
-          auth, // ✅ Auth FIRST for Firebase v10+
-          "recaptcha-container",
-          {
-            size: "invisible",
-            callback: (response: any) => {
-              console.log("✅ reCAPTCHA solved", response);
-            },
-            "expired-callback": () => {
-              console.warn("⚠️ reCAPTCHA expired, resetting...");
-            },
-          }
-        );
+        const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+          size: "invisible",
+          callback: () => console.log("✅ reCAPTCHA solved"),
+          "expired-callback": () =>
+            console.warn("⚠️ reCAPTCHA expired, resetting..."),
+        });
 
         (window as any).recaptchaVerifier = verifier;
-
-        await verifier.render(); // ✅ ensure it’s fully ready before usage
-        console.log("✅ reCAPTCHA initialized successfully");
+        await verifier.render();
       } catch (err) {
         console.error("❌ reCAPTCHA setup failed:", err);
       }
@@ -69,6 +62,25 @@ export default function AuthModal({
     initRecaptcha();
   }, [isOpen]);
 
+  // Countdown logic for resend
+  useEffect(() => {
+    let interval: any;
+    if (isResendDisabled && step === "otp") {
+      interval = setInterval(() => {
+        setTimer((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setIsResendDisabled(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isResendDisabled, step]);
+
+  // Send OTP
   const handlePhoneLogin = async () => {
     setError("");
 
@@ -83,10 +95,7 @@ export default function AuthModal({
       const appVerifier = (window as any).recaptchaVerifier;
 
       if (!appVerifier) {
-        setError(
-          "Recaptcha is still initializing. Please wait a moment and retry."
-        );
-        console.warn("⚠️ Tried login before recaptcha ready");
+        setError("Recaptcha is still initializing. Please wait a moment.");
         return;
       }
 
@@ -98,6 +107,8 @@ export default function AuthModal({
 
       setConfirmation(confirmationResult);
       setStep("otp");
+      setIsResendDisabled(true);
+      setTimer(90);
       console.log("📩 OTP sent to", fullPhone);
     } catch (err: any) {
       console.error("OTP Error →", err);
@@ -107,6 +118,7 @@ export default function AuthModal({
     }
   };
 
+  // Verify OTP
   const handleVerifyOtp = async () => {
     setError("");
     if (!otp.trim()) {
@@ -125,6 +137,30 @@ export default function AuthModal({
     }
   };
 
+  // Resend OTP
+  const handleResendOtp = async () => {
+    if (!phone) return;
+    setError("");
+    try {
+      setIsResendDisabled(true);
+      setTimer(90);
+      const fullPhone = `+91${phone}`;
+      const appVerifier = (window as any).recaptchaVerifier;
+      const newConfirmation = await signInWithPhoneNumber(
+        auth,
+        fullPhone,
+        appVerifier
+      );
+      setConfirmation(newConfirmation);
+      console.log("🔁 OTP resent to", fullPhone);
+    } catch (err) {
+      console.error("Resend OTP failed:", err);
+      setError("Failed to resend OTP. Please try again.");
+      setIsResendDisabled(false);
+    }
+  };
+
+  // Google login
   const handleGoogleLogin = async () => {
     setError("");
     try {
@@ -180,8 +216,6 @@ export default function AuthModal({
               />
             </div>
             <ErrorText message={error} />
-            {/* recaptcha container is required even if invisible */}
-            <div id="recaptcha-container" />
             <button
               onClick={handlePhoneLogin}
               disabled={loading}
@@ -200,6 +234,7 @@ export default function AuthModal({
               className="w-full border rounded-full px-4 py-2 text-sm outline-none mb-2"
             />
             <ErrorText message={error} />
+
             <button
               onClick={handleVerifyOtp}
               disabled={loading}
@@ -207,6 +242,28 @@ export default function AuthModal({
             >
               {loading ? "Verifying..." : "Verify OTP"}
             </button>
+
+            {/* Resend OTP Button + Timer */}
+            <div className="text-center mt-4 text-xs text-gray-500">
+              Didn’t get OTP?{" "}
+              <button
+                onClick={handleResendOtp}
+                disabled={isResendDisabled}
+                className={`font-semibold ${
+                  isResendDisabled
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-black hover:underline"
+                }`}
+              >
+                Resend OTP
+              </button>
+              {isResendDisabled && (
+                <p className="mt-1 text-gray-400">
+                  Resend available in {Math.floor(timer / 60)}:
+                  {String(timer % 60).padStart(2, "0")}
+                </p>
+              )}
+            </div>
           </>
         )}
       </div>

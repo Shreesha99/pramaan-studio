@@ -71,37 +71,38 @@ export default function FeaturedCollection() {
   const handleAddToCart = (p: any) => {
     const hasColors = p.hasColors;
     const selectedClr = selectedColor[p.id];
-
-    if (hasColors && !selectedClr) {
-      showToast("Please select a color before adding to cart.", "info");
-      return;
-    }
-
     const color = hasColors ? selectedClr : "default";
-    const variant = hasColors ? p.variants?.[color] : null;
 
+    // 🧠 Pick correct variant or base product
+    const variant = hasColors ? p.variants?.[color] : null;
     const availableStock = hasColors ? variant?.stock ?? 0 : p.stock ?? 0;
 
     const image = hasColors
       ? variant?.images?.[0] || "/placeholder.png"
       : p.images?.[0] || "/placeholder.png";
 
-    try {
-      if (!user) {
-        showToast("Please sign in to add to cart.", "info");
-        openAuthModal();
-        return;
-      }
+    if (!user) {
+      showToast("Please sign in to add to cart.", "info");
+      openAuthModal();
+      return;
+    }
 
-      if (availableStock <= 0) {
-        showToast("This variant is out of stock.", "info");
-        return;
-      }
+    if (hasColors && !selectedClr) {
+      showToast("Please select a color before adding to cart.", "info");
+      return;
+    }
 
-      const existing = getCartItem(p.id, color);
+    if (availableStock <= 0) {
+      showToast("This item is out of stock.", "info");
+      return;
+    }
 
-      if (existing && existing.qty >= availableStock) {
-        showToast(`Only ${availableStock} available in stock.`, "info");
+    const existing = getCartItem(p.id, color);
+
+    if (existing) {
+      // 🧠 Prevent exceeding stock
+      if (existing.qty >= availableStock) {
+        showToast(`Only ${availableStock} in stock.`, "info");
         gsap.fromTo(
           `#qty-${p.id}-${color}`,
           { scale: 1 },
@@ -110,30 +111,30 @@ export default function FeaturedCollection() {
         return;
       }
 
-      if (existing) {
-        increaseQty(p.id, color);
-        gsap.fromTo(
-          `#qty-${p.id}-${color}`,
-          { scale: 1.3 },
-          { scale: 1, duration: 0.25, ease: "back.out(2)" }
-        );
-        showToast(`Increased ${p.name} (${color}) quantity`, "success");
-      } else {
-        addToCart({
-          id: p.id,
-          name: p.name,
-          price: p.price,
-          img: image,
-          qty: 1,
-          color,
-          stock: availableStock,
-        });
-        showToast(`${p.name} (${color}) added to cart!`, "success");
-      }
-    } catch (err) {
-      console.error(err);
-      showToast("Something went wrong.", "error");
+      increaseQty(p.id, color);
+      gsap.fromTo(
+        `#qty-${p.id}-${color}`,
+        { scale: 1.3 },
+        { scale: 1, duration: 0.25, ease: "back.out(2)" }
+      );
+      showToast(`${p.name} (${color}) quantity increased`, "success");
+      return;
     }
+
+    // 🧩 Add new cart item
+    addToCart({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      img: image,
+      qty: 1,
+      color,
+      stock: availableStock,
+    });
+    showToast(
+      `${p.name}${color !== "default" ? ` (${color})` : ""} added to cart!`,
+      "success"
+    );
   };
 
   const handleRemoveFromCart = (id: string, name: string, color?: string) => {
@@ -172,7 +173,9 @@ export default function FeaturedCollection() {
               selectedColor[p.id] ||
               (p.hasColors ? Object.keys(p.variants || {})[0] : "default");
             const variant = p.variants?.[color];
-            const availableStock = variant?.stock ?? 0;
+            const availableStock = p.hasColors
+              ? variant?.stock ?? 0
+              : p.stock ?? 0;
 
             const images =
               Array.isArray(variant?.images) && variant.images.length > 0
@@ -230,6 +233,8 @@ export default function FeaturedCollection() {
                     <p className="text-xs text-gray-400 mt-1">
                       {availableStock > 0
                         ? `In stock: ${availableStock}`
+                        : p.hasColors
+                        ? "No variants available"
                         : "Out of stock"}
                     </p>
 

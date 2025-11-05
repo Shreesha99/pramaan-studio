@@ -100,7 +100,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const existing = prev.find(
         (p) => p.id === item.id && p.color === item.color
       );
+
+      // 🧠 Respect stock limit
       if (existing) {
+        if (existing.stock && existing.qty >= existing.stock) return prev;
         const updated = prev.map((p) =>
           p.id === item.id && p.color === item.color
             ? { ...p, qty: p.qty + 1 }
