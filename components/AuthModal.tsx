@@ -51,28 +51,28 @@ export default function AuthModal({
   }, [isOpen]);
 
   // ✅ Correct Recaptcha initialization order
+  // Initialize reCAPTCHA fresh every time modal opens
   useEffect(() => {
     if (!isOpen || typeof window === "undefined" || !auth) return;
 
-    const initRecaptcha = async () => {
+    // ✅ Destroy old recaptcha
+    if ((window as any).recaptchaVerifier) {
       try {
-        if ((window as any).recaptchaVerifier) return;
+        (window as any).recaptchaVerifier.clear();
+      } catch {}
+      (window as any).recaptchaVerifier = null;
+    }
 
-        const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-          size: "invisible",
-          callback: () => console.log("✅ reCAPTCHA solved"),
-          "expired-callback": () =>
-            console.warn("⚠️ reCAPTCHA expired, resetting..."),
-        });
+    // ✅ Create fresh verifier
+    const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+      size: "invisible",
+      callback: () => console.log("✅ reCAPTCHA solved"),
+      "expired-callback": () => console.warn("⚠️ reCAPTCHA expired"),
+    });
 
-        (window as any).recaptchaVerifier = verifier;
-        await verifier.render();
-      } catch (err) {
-        console.error("❌ reCAPTCHA setup failed:", err);
-      }
-    };
+    (window as any).recaptchaVerifier = verifier;
 
-    initRecaptcha();
+    verifier.render().catch((err) => console.error("Render error:", err));
   }, [isOpen]);
 
   // Countdown logic for resend
@@ -188,7 +188,7 @@ export default function AuthModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div id="recaptcha-container" className="absolute opacity-0" />
       <div
         ref={modalRef}

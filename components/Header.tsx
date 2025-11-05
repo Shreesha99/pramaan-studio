@@ -16,9 +16,12 @@ import { useCart } from "@/context/CartContext";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { useAuth } from "@/context/AuthContext";
 import Fuse from "fuse.js";
-import { db } from "@/lib/firebase";
+import { auth, db, storage } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { useToast } from "@/context/ToastContext";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { updateEmail, updateProfile } from "firebase/auth";
 
 export default function Header() {
   const {
@@ -214,7 +217,7 @@ export default function Header() {
             {user ? (
               <div className="relative">
                 <button
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  onClick={() => setDropdownOpen((s) => !s)}
                   className="flex items-center gap-1"
                 >
                   {user.photoURL ? (
@@ -233,32 +236,16 @@ export default function Header() {
                 {dropdownOpen && (
                   <div
                     ref={dropdownRef}
-                    className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-[150]"
+                    className="absolute right-0 mt-2 w-[340px] bg-white border border-gray-200 rounded-2xl shadow-2xl z-[150] p-5"
                   >
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-sm font-semibold text-gray-800">
-                        {user.displayName || "User"}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {user.email || "Google User"}
-                      </p>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        try {
-                          await logout();
-                          showToast("Logged out successfully.", "success");
-                        } catch (err) {
-                          showToast(
-                            "Logout failed. Please try again.",
-                            "error"
-                          );
-                        }
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
-                    >
-                      Logout
-                    </button>
+                    {/* Prefetch & form state */}
+                    {/* NOTE: these state variables & effects are defined inside Header component scope */}
+                    <ProfileDropdownContent
+                      user={user}
+                      onClose={() => setDropdownOpen(false)}
+                      logout={logout}
+                      showToast={showToast}
+                    />
                   </div>
                 )}
               </div>
@@ -466,6 +453,255 @@ export default function Header() {
           }}
         />
       )}
+    </>
+  );
+}
+
+function ProfileDropdownContent({
+  user,
+  onClose,
+  logout,
+  showToast,
+}: {
+  user: any;
+  onClose: () => void;
+  logout: () => Promise<void>;
+  showToast: (msg: string, type?: "success" | "error" | "info") => void;
+}) {
+  const [name, setName] = useState(user.displayName || "");
+  const [emailLocal, setEmailLocal] = useState(user.email || "");
+  const [billing, setBilling] = useState("");
+  const [delivery, setDelivery] = useState("");
+  const [sameAsBilling, setSameAsBilling] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoURL, setPhotoURL] = useState(user.photoURL || "");
+  const [loadingSave, setLoadingSave] = useState(false);
+  const [loadingFetch, setLoadingFetch] = useState(false);
+
+  // 🧠 Fetch saved Firestore profile data
+  useEffect(() => {
+    if (!user?.uid) return;
+    const fetchProfile = async () => {
+      setLoadingFetch(true);
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.name) setName(data.name);
+          if (data.email) setEmailLocal(data.email);
+          if (data.billingAddress) setBilling(data.billingAddress);
+          if (data.deliveryAddress) setDelivery(data.deliveryAddress);
+          if (
+            data.billingAddress &&
+            data.deliveryAddress &&
+            data.billingAddress === data.deliveryAddress
+          )
+            setSameAsBilling(true);
+          if (data.photoURL) setPhotoURL(data.photoURL);
+        }
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+      } finally {
+        setLoadingFetch(false);
+      }
+    };
+    fetchProfile();
+  }, [user?.uid]);
+
+  // 🧩 Auto-sync delivery if sameAsBilling
+  useEffect(() => {
+    if (sameAsBilling) setDelivery(billing);
+  }, [sameAsBilling, billing]);
+
+  // 📸 Upload Photo to Firebase Storage
+  const handlePhotoUpload = async () => {
+    if (!photoFile || !user?.uid) return null;
+    try {
+      const fileRef = ref(storage, `users/${user.uid}/profile.jpg`);
+      await uploadBytes(fileRef, photoFile);
+      const downloadURL = await getDownloadURL(fileRef);
+      setPhotoURL(downloadURL);
+      return downloadURL;
+    } catch (err) {
+      console.error("Photo upload error:", err);
+      showToast("Failed to upload photo", "error");
+      return null;
+    }
+  };
+
+  // 💾 Save Profile to Firestore + Firebase Auth
+  const handleSave = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!user?.uid) return;
+
+    setLoadingSave(true);
+    try {
+      let uploadedPhotoURL = photoURL;
+
+      if (photoFile) {
+        uploadedPhotoURL = await handlePhotoUpload();
+      }
+
+      // 🔹 Update Firestore
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          name,
+          email: emailLocal,
+          billingAddress: billing,
+          deliveryAddress: sameAsBilling ? billing : delivery,
+          photoURL: uploadedPhotoURL,
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+
+      // 🔹 Update Firebase Auth profile
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, {
+          displayName: name,
+          photoURL: uploadedPhotoURL || undefined,
+        });
+        if (emailLocal && emailLocal !== auth.currentUser.email) {
+          try {
+            await updateEmail(auth.currentUser, emailLocal);
+          } catch {
+            console.warn("Email update requires recent login; skipped.");
+          }
+        }
+      }
+
+      showToast("Profile updated successfully!", "success");
+      onClose();
+    } catch (err) {
+      console.error("Save error:", err);
+      showToast("Failed to save profile. Please try again.", "error");
+    } finally {
+      setLoadingSave(false);
+    }
+  };
+
+  // 🖼️ Handle image select
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      setPhotoURL(URL.createObjectURL(file)); // preview
+    }
+  };
+
+  return (
+    <>
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-4">
+        <div className="relative w-14 h-14">
+          {photoURL ? (
+            <img
+              src={photoURL}
+              alt="Profile"
+              className="w-14 h-14 rounded-full object-cover border"
+            />
+          ) : (
+            <UserCircleIcon className="w-14 h-14 text-gray-600" />
+          )}
+          <label className="absolute bottom-0 right-0 bg-black text-white text-xs rounded-full p-1 cursor-pointer hover:bg-gray-800">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+            📷
+          </label>
+        </div>
+        <div>
+          <p className="font-semibold text-gray-800">{name || "User"}</p>
+          <p className="text-xs text-gray-500 truncate">
+            {emailLocal || "No email added"}
+          </p>
+        </div>
+      </div>
+
+      {loadingFetch ? (
+        <div className="text-center text-gray-500 py-3 text-sm">
+          Loading profile…
+        </div>
+      ) : (
+        <form onSubmit={handleSave} className="space-y-3">
+          <input
+            type="text"
+            placeholder="Full Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-black"
+          />
+
+          <input
+            type="email"
+            placeholder="Email Address"
+            value={emailLocal}
+            onChange={(e) => setEmailLocal(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-black"
+          />
+
+          <textarea
+            placeholder="Billing Address"
+            value={billing}
+            onChange={(e) => setBilling(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-black resize-none h-20"
+          />
+
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <input
+              type="checkbox"
+              checked={sameAsBilling}
+              onChange={(e) => setSameAsBilling(e.target.checked)}
+            />
+            <label>Use billing address as delivery address</label>
+          </div>
+
+          <textarea
+            placeholder="Delivery Address"
+            value={delivery}
+            onChange={(e) => setDelivery(e.target.value)}
+            disabled={sameAsBilling}
+            className={`w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-black resize-none h-20 ${
+              sameAsBilling ? "bg-gray-50 cursor-not-allowed" : ""
+            }`}
+          />
+
+          <button
+            type="submit"
+            disabled={loadingSave}
+            className={`w-full py-2 rounded-full font-semibold ${
+              loadingSave
+                ? "bg-gray-300 text-gray-700"
+                : "bg-black text-white hover:bg-gray-900"
+            }`}
+          >
+            {loadingSave ? "Saving..." : "Save Changes"}
+          </button>
+        </form>
+      )}
+
+      {/* Logout */}
+      <div className="mt-4 border-t border-gray-200 pt-3">
+        <button
+          onClick={async () => {
+            try {
+              await logout();
+              showToast("Logged out successfully.", "success");
+              onClose();
+            } catch (err) {
+              console.error("Logout error:", err);
+              showToast("Logout failed. Try again.", "error");
+            }
+          }}
+          className="w-full flex items-center justify-center gap-2 py-2 rounded-full border border-gray-300 hover:bg-gray-50 text-sm font-medium"
+        >
+          🚪 Logout
+        </button>
+      </div>
     </>
   );
 }
