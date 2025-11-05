@@ -26,6 +26,19 @@ export default function AuthModal({
   const [isResendDisabled, setIsResendDisabled] = useState(true);
   const modalRef = useRef<HTMLDivElement>(null);
 
+  // ✅ Reset all fields whenever modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setStep("phone");
+      setPhone("");
+      setOtp("");
+      setConfirmation(null);
+      setError("");
+      setTimer(90);
+      setIsResendDisabled(true);
+    }
+  }, [isOpen]);
+
   // Animate modal
   useEffect(() => {
     if (isOpen && modalRef.current) {
@@ -37,7 +50,7 @@ export default function AuthModal({
     }
   }, [isOpen]);
 
-  // Initialize reCAPTCHA
+  // ✅ Correct Recaptcha initialization order
   useEffect(() => {
     if (!isOpen || typeof window === "undefined" || !auth) return;
 
@@ -176,7 +189,7 @@ export default function AuthModal({
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div id="recaptcha-container" className="hidden" />
+      <div id="recaptcha-container" className="absolute opacity-0" />
       <div
         ref={modalRef}
         className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm relative"
@@ -191,12 +204,12 @@ export default function AuthModal({
         <h2 className="text-center text-2xl font-semibold mb-5">Sign In</h2>
 
         {/* GOOGLE LOGIN */}
-        <button
+        {/* <button
           onClick={handleGoogleLogin}
           className="w-full py-2 bg-black text-white rounded-full font-semibold hover:bg-gray-900 transition mb-3"
         >
           Continue with Google
-        </button>
+        </button> */}
 
         {/* PHONE LOGIN */}
         {step === "phone" ? (
