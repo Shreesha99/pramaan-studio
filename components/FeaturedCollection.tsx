@@ -20,6 +20,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { gsap } from "gsap";
 import { formatCurrency } from "@/lib/formatCurrency";
+import Link from "next/link";
 
 export default function FeaturedCollection() {
   const [products, setProducts] = useState<any[]>([]);
@@ -196,32 +197,56 @@ export default function FeaturedCollection() {
                 className="bg-white shadow-md rounded-lg overflow-hidden hover:shadow-lg transition flex flex-col"
               >
                 {/* Product Image Carousel */}
-                <div className="relative w-full h-[400px] overflow-hidden group">
-                  <Image
-                    src={displayImg}
-                    alt={p.name}
-                    width={400}
-                    height={500}
-                    className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-                  />
+                {/* Product Image Carousel */}
+                <Link href={`/product/${p.id}`} className="block">
+                  <div className="relative w-full h-[400px] overflow-hidden group cursor-pointer">
+                    <Image
+                      src={displayImg}
+                      alt={p.name}
+                      width={400}
+                      height={500}
+                      className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+                    />
 
-                  {images.length > 1 && (
-                    <>
-                      <button
-                        onClick={() => handlePrevImage(p.id, images.length)}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <ChevronLeftIcon className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleNextImage(p.id, images.length)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <ChevronRightIcon className="w-5 h-5" />
-                      </button>
-                    </>
-                  )}
-                </div>
+                    {/* ✅ Hover “View Product” overlay */}
+                    <div
+                      className="
+      absolute inset-0 flex items-center justify-center 
+      opacity-0 group-hover:opacity-100 
+      transition bg-black/40 backdrop-blur-sm
+      text-white text-lg font-semibold
+      pointer-events-none
+    "
+                    >
+                      View Product
+                    </div>
+
+                    {/* ✅ Image carousel arrows (your existing code stays same) */}
+                    {images.length > 1 && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handlePrevImage(p.id, images.length);
+                          }}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition"
+                        >
+                          <ChevronLeftIcon className="w-5 h-5" />
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleNextImage(p.id, images.length);
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition"
+                        >
+                          <ChevronRightIcon className="w-5 h-5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </Link>
 
                 {/* Product Info */}
                 <div className="p-4 flex flex-col flex-1 justify-between">

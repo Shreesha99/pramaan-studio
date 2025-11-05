@@ -74,14 +74,23 @@ export default function Header() {
     const results = fuse.search(searchQuery.trim()).map((r) => r.item);
     setSearchResults(results);
   }, [searchQuery, allProducts]);
-  // Animate header entrance
+
+  const headerRef = useRef(null);
+  const headerAnimated = useRef(false);
   useEffect(() => {
-    gsap.from("header", {
+    if (!headerRef.current) return;
+
+    const played = sessionStorage.getItem("headerAnimPlayed");
+    if (played) return;
+
+    gsap.from(headerRef.current, {
       y: -40,
       opacity: 0,
       duration: 0.8,
       ease: "power3.out",
     });
+
+    sessionStorage.setItem("headerAnimPlayed", "true");
   }, []);
 
   // Animate cart drawer
@@ -182,7 +191,10 @@ export default function Header() {
 
   return (
     <>
-      <header className="py-5 border-b border-gray-100 bg-white sticky top-0 z-50 backdrop-blur-md">
+      <header
+        ref={headerRef}
+        className="py-5 border-b border-gray-100 bg-white sticky top-0 backdrop-blur-md z-100"
+      >
         <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between">
           {/* ✅ Brand Logo */}
           <div className="flex items-center gap-2">
@@ -236,7 +248,7 @@ export default function Header() {
                 {dropdownOpen && (
                   <div
                     ref={dropdownRef}
-                    className="absolute right-0 mt-2 w-[340px] bg-white border border-gray-200 rounded-2xl shadow-2xl z-[150] p-5"
+                    className="absolute right-0 mt-2 w-[340px] bg-white border border-gray-200 rounded-2xl shadow-2xl z-150 p-5"
                   >
                     {/* Prefetch & form state */}
                     {/* NOTE: these state variables & effects are defined inside Header component scope */}
@@ -276,7 +288,7 @@ export default function Header() {
       {searchOpen && (
         <div
           ref={searchRef}
-          className="fixed top-[15%] left-1/2 -translate-x-1/2 w-[90%] sm:w-[600px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-[120] p-5"
+          className="fixed top-[15%] left-1/2 -translate-x-1/2 w-[90%] sm:w-[600px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-120 p-5"
         >
           <div className="flex items-center gap-3">
             <MagnifyingGlassIcon className="w-6 h-6 text-gray-600" />
@@ -340,7 +352,7 @@ export default function Header() {
       {/* 🛒 Cart Drawer */}
       <div
         ref={drawerRef}
-        className="cart-drawer fixed top-0 right-0 h-full w-[90%] sm:w-[400px] bg-white shadow-2xl z-[100] flex flex-col"
+        className="cart-drawer fixed top-0 right-0 h-full w-[90%] sm:w-[400px] bg-white shadow-2xl z-100 flex flex-col"
       >
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
           <h2 className="text-lg font-semibold">Your Cart</h2>
@@ -446,7 +458,7 @@ export default function Header() {
       {/* Overlay */}
       {(cartOpen || searchOpen) && (
         <div
-          className="fixed inset-0 bg-black/30 backdrop-blur-[1px] z-[90]"
+          className="fixed inset-0 bg-black/30 backdrop-blur-[1px] z-90"
           onClick={() => {
             setCartOpen(false);
             setSearchOpen(false);
