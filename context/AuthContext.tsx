@@ -10,7 +10,8 @@ import {
 import { auth } from "@/lib/firebase";
 import {
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   User,
@@ -33,21 +34,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
+  // ✅ Load user from Firebase listener — this always runs when auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        localStorage.setItem("pramaan_user", JSON.stringify(firebaseUser));
+      } else {
+        setUser(null);
+        localStorage.removeItem("pramaan_user");
+      }
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
+  // ✅ Also handle redirect results (first page load after redirect)
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          setUser(result.user);
+          localStorage.setItem("pramaan_user", JSON.stringify(result.user));
+        }
+      })
+      .catch((err) => console.error("Google redirect error:", err));
+  }, []);
+
+  // ✅ Fallback: restore user from localStorage in case Firebase is slow to rehydrate
+  useEffect(() => {
+    const saved = localStorage.getItem("pramaan_user");
+    if (saved && !user) {
+      try {
+        const parsed = JSON.parse(saved);
+        setUser(parsed);
+      } catch {
+        localStorage.removeItem("pramaan_user");
+      }
+    }
+  }, [user]);
+
+  // 🔹 Login via redirect
   const login = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    provider.setCustomParameters({ prompt: "select_account" });
+    await signInWithRedirect(auth, provider);
   };
 
+  // 🔹 Logout
   const logout = async () => {
     await signOut(auth);
+    localStorage.removeItem("pramaan_user");
+    setUser(null);
   };
 
   const openAuthModal = () => setShowAuthModal(true);

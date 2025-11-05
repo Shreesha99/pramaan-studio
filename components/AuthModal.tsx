@@ -161,11 +161,12 @@ export default function AuthModal({
   };
 
   // Google login
+  // Google login (redirect based)
   const handleGoogleLogin = async () => {
     setError("");
     try {
-      await login();
-      onClose();
+      await login(); // now uses redirect from AuthContext
+      onClose(); // modal closes before redirect happens
     } catch {
       setError("Google login failed. Please try again.");
     }
