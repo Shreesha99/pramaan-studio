@@ -66,7 +66,6 @@ export default function AuthModal({
     // ✅ Create fresh verifier
     const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
       size: "invisible",
-      callback: () => console.log("✅ reCAPTCHA solved"),
       "expired-callback": () => console.warn("⚠️ reCAPTCHA expired"),
     });
 
@@ -122,7 +121,6 @@ export default function AuthModal({
       setStep("otp");
       setIsResendDisabled(true);
       setTimer(90);
-      console.log("📩 OTP sent to", fullPhone);
     } catch (err: any) {
       console.error("OTP Error →", err);
       setError("Failed to send OTP. Please try again.");
@@ -165,7 +163,6 @@ export default function AuthModal({
         appVerifier
       );
       setConfirmation(newConfirmation);
-      console.log("🔁 OTP resent to", fullPhone);
     } catch (err) {
       console.error("Resend OTP failed:", err);
       setError("Failed to resend OTP. Please try again.");

@@ -21,6 +21,12 @@ export default function Hero() {
 
   useEffect(() => {
     // Entry animations
+    gsap.from(".hero-outline span", {
+      yPercent: 120,
+      opacity: 0,
+      duration: 1,
+      stagger: 0.15,
+    });
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
       tl.from(".hero-title span", {
@@ -29,6 +35,7 @@ export default function Hero() {
         duration: 1,
         stagger: 0.15,
       })
+
         .from(".hero-btn", { y: 20, opacity: 0, duration: 0.5 }, "-=0.4")
         .from(".hero-desc", { y: 40, opacity: 0, duration: 0.6 }, "-=0.4")
         .from(
@@ -80,47 +87,64 @@ export default function Hero() {
 
     const xSet = gsap.quickSetter(cursor, "x", "px");
     const ySet = gsap.quickSetter(cursor, "y", "px");
+    let lastTrail = 0;
+    const TRAIL_DELAY = 150;
+    let lastTrailX = 0;
+    let lastTrailY = 0;
+    const TRAIL_SPACING = 35; // pixels between each particle
 
-    const createTrail = (x: number, y: number) => {
-      // ✅ Runtime safety too
-      if (!trailContainer) return;
+    // const createTrail = (x: number, y: number) => {
+    //   const now = Date.now();
+    //   if (now - lastTrail < TRAIL_DELAY) return;
+    //   lastTrail = now;
+    //   // ✅ Runtime safety too
+    //   if (!trailContainer) return;
 
-      const trail = document.createElement("img");
-      const randomImg =
-        trailImages[Math.floor(Math.random() * trailImages.length)];
-      trail.src = randomImg;
-      trail.className =
-        "absolute w-16 h-16 object-cover rounded-md pointer-events-none select-none opacity-0";
-      trail.style.left = `${x - 30}px`;
-      trail.style.top = `${y - 30}px`;
-      trailContainer.appendChild(trail);
+    //   const trail = document.createElement("img");
+    //   const randomImg =
+    //     trailImages[Math.floor(Math.random() * trailImages.length)];
+    //   trail.src = randomImg;
+    //   trail.className =
+    //     "absolute w-12 h-12 object-cover rounded-md pointer-events-none opacity-0";
+    //   trail.style.left = `${x - 24}px`;
+    //   trail.style.top = `${y - 24}px`;
 
-      gsap.fromTo(
-        trail,
-        { scale: 0.8, opacity: 0 },
-        {
-          opacity: 0.8,
-          scale: 1,
-          duration: 0.4,
-          ease: "power2.out",
-          onComplete: () => {
-            gsap.to(trail, {
-              opacity: 0,
-              scale: 1.3,
-              duration: 0.8,
-              ease: "power2.in",
-              onComplete: () => trail.remove(),
-            });
-          },
-        }
-      );
-    };
+    //   trailContainer.appendChild(trail);
+
+    //   gsap.fromTo(
+    //     trail,
+    //     { scale: 0.5, opacity: 0 },
+    //     {
+    //       opacity: 0.4,
+    //       scale: 0.9,
+    //       duration: 0.3,
+    //       ease: "power2.out",
+    //       onComplete: () => {
+    //         gsap.to(trail, {
+    //           opacity: 0,
+    //           scale: 1.1,
+    //           duration: 0.25,
+    //           ease: "power1.inOut",
+    //           onComplete: () => trail.remove(),
+    //         });
+    //       },
+    //     }
+    //   );
+    // };
 
     // ✅ Mouse interactions only inside hero
     const moveHandler = (e: MouseEvent) => {
       mouse.x = e.clientX;
       mouse.y = e.clientY;
-      createTrail(e.clientX, e.clientY);
+      const dx = e.clientX - lastTrailX;
+      const dy = e.clientY - lastTrailY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist > TRAIL_SPACING) {
+        // createTrail(e.clientX, e.clientY);
+        lastTrailX = e.clientX;
+        lastTrailY = e.clientY;
+      }
     };
 
     hero.addEventListener("mousemove", moveHandler);
@@ -205,7 +229,10 @@ export default function Hero() {
       </div>
 
       {/* Foreground Title */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-[3] mix-blend-difference pointer-events-none">
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center text-center z-[3] mix-blend-difference pointer-events-none 
+  translate-y-[-30px] sm:translate-y-0"
+      >
         <h1
           className="hero-title uppercase font-extrabold leading-[0.9] tracking-tight text-black relative"
           style={{
@@ -226,7 +253,10 @@ export default function Hero() {
       </div>
 
       {/* Outline Title */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center z-[1]">
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center text-center z-[1] 
+  translate-y-[-30px] sm:translate-y-0 hero-outline"
+      >
         <h1
           className="uppercase font-extrabold leading-[0.9] tracking-tight text-transparent opacity-60"
           style={{
@@ -234,44 +264,58 @@ export default function Hero() {
             fontSize: "clamp(2.5rem, 9vw, 7rem)",
           }}
         >
-          Discover
-          <br />
-          Clothes
-          <br />
-          Unique Style
+          <span className="block">Discover</span>
+          <span className="block">Clothes</span>
+          <span className="block">Unique Style</span>
         </h1>
       </div>
 
       {/* CTA and Description */}
-      <div className="absolute right-4 bottom-16 sm:right-10 sm:bottom-20 text-center sm:text-right z-[5] px-4 sm:px-0">
-        <button className="hero-btn inline-flex items-center gap-2 px-5 sm:px-6 py-2 sm:py-3 rounded-full bg-black text-white text-sm sm:text-base font-semibold transition-all duration-300 hover:bg-gray-900 hover:scale-[1.03] group mb-4 sm:mb-5">
+      <div className="absolute right-4 bottom-40 sm:right-10 sm:bottom-32 text-center sm:text-right z-[5] px-4 sm:px-0">
+        {/* <button className="hero-btn inline-flex items-center gap-2 px-5 sm:px-6 py-2 sm:py-3 rounded-full bg-black text-white text-sm sm:text-base font-semibold transition-all duration-300 hover:bg-gray-900 hover:scale-[1.03] group mb-4 sm:mb-5">
           Shop Now{" "}
           <ArrowUpRightIcon className="w-4 h-4 transform transition-transform duration-300 group-hover:rotate-45" />
-        </button>
-        <p className="hero-desc text-gray-600 text-xs sm:text-sm max-w-[280px] sm:max-w-xs mx-auto sm:mx-0 leading-relaxed">
-          Explore a curated collection of clothing designed to complement your
-          personal style and elevate your everyday look.
+        </button> */}
+        <p className="hero-desc text-gray-700 text-sm sm:text-base max-w-[320px] sm:max-w-sm mx-auto sm:mx-0 leading-relaxed font-medium">
+          Explore a curated range of apparel and lifestyle essentials from
+          T-shirts and hoodies to mugs, bottles, and keychains all customizable
+          to reflect your unique style
         </p>
       </div>
 
       {/* Left Stats */}
-      <div className="hero-stats absolute left-0 right-0 bottom-6 sm:left-10 sm:bottom-24 text-gray-800 font-semibold z-[4] flex sm:block justify-center gap-6 sm:gap-0 sm:space-y-5 text-xs sm:text-base">
-        <div className="text-center sm:text-left">
-          <h3 className="text-lg sm:text-2xl font-bold">200+</h3>
-          <p className="text-[11px] sm:text-sm text-gray-500">
-            International Brands
+      <div
+        className="hero-stats absolute left-0 right-0 bottom-10 sm:left-10 sm:bottom-32 
+                text-gray-900 font-semibold z-[4] flex sm:block justify-center 
+                gap-8 sm:gap-0 sm:space-y-6 text-xs sm:text-base"
+      >
+        {/* Product Types */}
+        <div className="text-center sm:text-left flex flex-col items-center sm:items-start">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg sm:text-xl font-bold">20+</h3>
+          </div>
+          <p className="text-[11px] sm:text-sm text-gray-500 mt-1">
+            Product Types Offered
           </p>
         </div>
-        <div className="text-center sm:text-left">
-          <h3 className="text-lg sm:text-2xl font-bold">2K+</h3>
-          <p className="text-[11px] sm:text-sm text-gray-500">
-            High-Quality Products
+
+        {/* Custom Printing */}
+        <div className="text-center sm:text-left flex flex-col items-center sm:items-start">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg sm:text-xl font-bold">Custom</h3>
+          </div>
+          <p className="text-[11px] sm:text-sm text-gray-500 mt-1">
+            Fully Customizable Printing
           </p>
         </div>
-        <div className="text-center sm:text-left">
-          <h3 className="text-lg sm:text-2xl font-bold">30K+</h3>
-          <p className="text-[11px] sm:text-sm text-gray-500">
-            Happy Customers
+
+        {/* Pan-India Delivery */}
+        <div className="text-center sm:text-left flex flex-col items-center sm:items-start">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg sm:text-xl font-bold">India</h3>
+          </div>
+          <p className="text-[11px] sm:text-sm text-gray-500 mt-1">
+            Delivered Pan-India
           </p>
         </div>
       </div>

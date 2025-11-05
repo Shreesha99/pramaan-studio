@@ -168,7 +168,10 @@ export default function FeaturedCollection() {
       ) : products.length === 0 ? (
         <p className="text-center text-gray-400">No featured products yet.</p>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3
+        gap-6"
+        >
           {products.map((p) => {
             const color =
               selectedColor[p.id] ||

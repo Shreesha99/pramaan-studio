@@ -29,3 +29,30 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
 }
+
+/* === GLOBAL SCROLLBAR STYLING === */
+
+/* Chrome, Edge, Safari */
+
+/* Scrollbar Track */
+::-webkit-scrollbar-track {
+  background: #ffffff; /* white */
+}
+
+/* Scrollbar Thumb */
+::-webkit-scrollbar-thumb {
+  background: #000000; /* black */
+  border-radius: 8px;
+}
+
+/* Scrollbar Thumb Hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #222222; /* slightly lighter black */
+}
+
+/* === Firefox === */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #000000 #ffffff;
+  /* thumb = black, track = white */
+}

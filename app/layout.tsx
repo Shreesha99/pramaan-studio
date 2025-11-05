@@ -5,6 +5,7 @@ import { CartProvider } from "@/context/CartContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import GlobalAuthModal from "@/components/GlobalAuthModal";
+import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -30,6 +31,7 @@ export default function RootLayout({
               <LenisProvider>
                 {children}
                 <GlobalAuthModal />
+                <FloatingWhatsApp />
               </LenisProvider>{" "}
             </CartProvider>
           </ToastProvider>
