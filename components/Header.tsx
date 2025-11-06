@@ -22,6 +22,7 @@ import { useToast } from "@/context/ToastContext";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { updateEmail, updateProfile } from "firebase/auth";
+import Link from "next/link";
 
 export default function Header() {
   const {
@@ -200,25 +201,27 @@ export default function Header() {
       >
         <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between">
           {/* ✅ Brand Logo */}
-          <div className="flex items-center gap-2">
-            <Image
-              src="/assets/img/nav-logo.png"
-              alt="PraMaan Logo"
-              width={36}
-              height={36}
-              priority
-              className="w-9 h-9 object-contain"
-            />
-            <span className="hidden md:inline text-xl tracking-tight">
-              PraMaan
-            </span>
-          </div>
+          <Link href="/">
+            <div className="flex items-center gap-2">
+              <Image
+                src="/assets/img/nav-logo.png"
+                alt="PraMaan Logo"
+                width={36}
+                height={36}
+                priority
+                className="w-9 h-9 object-contain"
+              />
+              <span className="hidden md:inline text-xl tracking-tight">
+                PraMaan
+              </span>
+            </div>
+          </Link>
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-10 text-sm font-medium text-gray-700">
-            <a href="#">Shop</a>
-            <a href="#">On Sale</a>
-            <a href="#">New Arrivals</a>
+            <a href="#products">Products</a>
+            <a href="#featured">Featured</a>
+            <a href="#our-work">Our work</a>
           </nav>
 
           {/* Icons + Auth + Cart */}

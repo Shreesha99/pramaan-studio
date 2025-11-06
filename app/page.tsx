@@ -20,16 +20,17 @@ export default function HomePage() {
         {/* NORMAL VERTICAL SECTIONS */}
         <div id="vertical-content">
           <Hero />
-          <section className="reveal-section">
+          <section id="products" className="reveal-section">
             <NewCollection />
           </section>
-          <section className="reveal-section">
+          <section id="featured" className="reveal-section">
             <FeaturedCollection />
           </section>
         </div>
-
-        {/* FULL-SCREEN PINNED SECTION */}
-        <ExploreSection />
+        <section id="our-work">
+          {" "}
+          <ExploreSection />
+        </section>
       </main>
 
       <Footer />
