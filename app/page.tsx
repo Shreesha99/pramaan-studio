@@ -27,10 +27,8 @@ export default function HomePage() {
             <FeaturedCollection />
           </section>
         </div>
-        <section id="our-work">
-          {" "}
-          <ExploreSection />
-        </section>
+
+        <ExploreSection />
       </main>
 
       <Footer />

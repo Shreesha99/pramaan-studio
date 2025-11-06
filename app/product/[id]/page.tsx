@@ -123,6 +123,7 @@ export default function ProductPage() {
               src={activeImg}
               alt={product.name}
               fill
+              sizes="400px"
               className="object-cover pointer-events-none"
               unoptimized
             />

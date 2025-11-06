@@ -17,6 +17,11 @@ body {
   overscroll-behavior: none;
 }
 
+#our-work {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
 main {
   margin: 0;
   padding: 0;

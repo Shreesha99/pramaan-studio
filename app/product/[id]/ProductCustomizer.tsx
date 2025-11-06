@@ -338,6 +338,7 @@ export default function ProductCustomizer({
                 src={item.src}
                 alt=""
                 fill
+                sizes="400px"
                 unoptimized
                 className="object-contain select-none pointer-events-none"
                 draggable={false}

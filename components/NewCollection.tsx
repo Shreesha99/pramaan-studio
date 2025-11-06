@@ -50,6 +50,7 @@ export default function OurRange() {
             src={categories[0].img}
             alt={categories[0].title}
             fill
+            sizes="400px"
             className="object-cover group-hover:scale-110 transition-all duration-500"
           />
 
@@ -91,6 +92,7 @@ export default function OurRange() {
                 src={c.img}
                 alt={c.title}
                 fill
+                sizes="400px"
                 className="object-cover group-hover:scale-110 transition-all duration-500"
               />
               <div className="absolute inset-0 bg-black/25 group-hover:bg-black/40 transition-all duration-300" />
@@ -111,6 +113,7 @@ export default function OurRange() {
             src={categories[3].img}
             alt={categories[3].title}
             fill
+            sizes="400px"
             className="object-cover group-hover:scale-110 transition-all duration-500"
           />
           <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-all duration-300" />

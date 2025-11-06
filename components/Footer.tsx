@@ -2,13 +2,15 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 
+/* ==========================
+   🇮🇳 Animated India Flag
+   ========================== */
 const IndiaFlag = () => {
   const flagRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     if (!flagRef.current) return;
 
-    // ✅ GSAP "flag wave" animation (subtle cloth-like motion)
     gsap.to(flagRef.current, {
       duration: 2.8,
       rotate: -2,
@@ -34,7 +36,7 @@ const IndiaFlag = () => {
       {/* Green */}
       <rect y="400" width="900" height="200" fill="#138808" />
 
-      {/* Ashoka Chakra */}
+      {/* Chakra */}
       <circle
         cx="450"
         cy="300"
@@ -61,6 +63,9 @@ const IndiaFlag = () => {
   );
 };
 
+/* ==========================
+          FOOTER
+   ========================== */
 export default function Footer() {
   const marqueeRef = useRef<HTMLDivElement>(null);
 
@@ -70,9 +75,7 @@ export default function Footer() {
     if (!el) return;
 
     const contentWidth = el.scrollWidth;
-    const windowWidth = window.innerWidth;
-
-    const distance = contentWidth / 2; // Because text is duplicated
+    const distance = contentWidth / 2;
 
     gsap.to(el, {
       x: `-=${distance}`,
@@ -89,62 +92,113 @@ export default function Footer() {
     <footer className="border-t border-gray-200 mt-20 bg-white">
       {/* Main Footer Grid */}
       <div className="max-w-[1200px] mx-auto px-6 py-16 grid grid-cols-2 md:grid-cols-4 gap-10 text-sm text-gray-600">
+        {/* Company */}
         <div>
           <h4 className="font-semibold mb-4 text-black text-lg tracking-wide">
             Company
           </h4>
           <ul className="space-y-2">
-            <li className="hover:text-black cursor-pointer">About</li>
-            <li className="hover:text-black cursor-pointer">Careers</li>
-            <li className="hover:text-black cursor-pointer">Blog</li>
+            <li>
+              <a href="/about" className="hover:text-black">
+                About
+              </a>
+            </li>
+            <li>
+              <a href="/careers" className="hover:text-black">
+                Careers
+              </a>
+            </li>
+            <li>
+              <a href="/blog" className="hover:text-black">
+                Blog
+              </a>
+            </li>
           </ul>
         </div>
 
+        {/* Help */}
         <div>
           <h4 className="font-semibold mb-4 text-black text-lg tracking-wide">
             Help
           </h4>
           <ul className="space-y-2">
-            <li className="hover:text-black cursor-pointer">
-              Customer Support
+            <li>
+              <a href="/contact" className="hover:text-black">
+                Customer Support
+              </a>
             </li>
-            <li className="hover:text-black cursor-pointer">Delivery Info</li>
-            <li className="hover:text-black cursor-pointer">Privacy Policy</li>
+            <li>
+              <a href="/shipping" className="hover:text-black">
+                Shipping
+              </a>
+            </li>
+            <li>
+              <a href="/privacy" className="hover:text-black">
+                Privacy Policy
+              </a>
+            </li>
           </ul>
         </div>
 
+        {/* FAQ */}
         <div>
           <h4 className="font-semibold mb-4 text-black text-lg tracking-wide">
             FAQ
           </h4>
           <ul className="space-y-2">
-            <li className="hover:text-black cursor-pointer">Account</li>
-            <li className="hover:text-black cursor-pointer">Returns</li>
-            <li className="hover:text-black cursor-pointer">Payments</li>
+            <li>
+              <a href="/faq" className="hover:text-black">
+                Account
+              </a>
+            </li>
+            <li>
+              <a href="/cancellation-refund" className="hover:text-black">
+                Returns
+              </a>
+            </li>
+            <li>
+              <a href="/payments" className="hover:text-black">
+                Payments
+              </a>
+            </li>
           </ul>
         </div>
 
+        {/* Resources */}
         <div>
           <h4 className="font-semibold mb-4 text-black text-lg tracking-wide">
             Resources
           </h4>
           <ul className="space-y-2">
-            <li className="hover:text-black cursor-pointer">Developers</li>
-            <li className="hover:text-black cursor-pointer">
-              Terms & Conditions
+            <li>
+              <a href="/developers" className="hover:text-black">
+                Developers
+              </a>
             </li>
-            <li className="hover:text-black cursor-pointer">Instagram</li>
+            <li>
+              <a href="/terms" className="hover:text-black">
+                Terms & Conditions
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                className="hover:text-black"
+              >
+                Instagram
+              </a>
+            </li>
           </ul>
         </div>
       </div>
 
-      {/* ✅ GSAP Marquee */}
+      {/* ✅ GSAP MARQUEE */}
       <div className="w-full overflow-hidden border-t border-gray-200 relative">
         <div
           ref={marqueeRef}
           className="flex whitespace-nowrap text-[2.5rem] sm:text-[3.5rem] font-extrabold uppercase tracking-[0.3em] py-6 text-black"
         >
-          {/* Duplicate content for smooth loop */}
           <span className="px-8">PRAMAAN • PRAMAAN • PRAMAAN • PRAMAAN •</span>
           <span className="px-8">PRAMAAN • PRAMAAN • PRAMAAN • PRAMAAN •</span>
         </div>

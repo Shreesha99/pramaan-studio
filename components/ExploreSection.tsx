@@ -40,35 +40,48 @@ export default function ExploreSection() {
     const track = trackRef.current;
     if (!section || !track) return;
 
-    let ctx = gsap.context(() => {
-      const items = gsap.utils.toArray(".project") as HTMLElement[];
-      const totalSlides = items.length;
+    const setup = () => {
+      // 1️⃣ Use full viewport width for stable horizontal distance
+      const viewportWidth = window.innerWidth;
+      const totalWidth = track.scrollWidth - viewportWidth;
 
-      const totalWidth = window.innerWidth * (totalSlides - 1);
-
-      // ✅ TIMELINE for horizontal movement
-      const tl = gsap.timeline({
-        defaults: { ease: "none" },
+      // Clean previous
+      ScrollTrigger.getAll().forEach((t) => {
+        if (t.vars?.id === "our-work") t.kill();
       });
+
+      // Kill any old timelines
+      gsap.killTweensOf(track);
+
+      const tl = gsap.timeline({ defaults: { ease: "none" } });
 
       tl.to(track, {
         x: -totalWidth,
         duration: 1,
+        immediateRender: false,
       });
 
-      // ✅ MAIN pinned scrolltrigger
       ScrollTrigger.create({
+        id: "our-work",
         trigger: section,
         animation: tl,
         pin: true,
+        pinSpacing: true,
         scrub: 1,
-        pinSpacing: true, // ✅ fixes vertical scroll happening
-        anticipatePin: 1, // ✅ fixes Next.js offset issue
+        anticipatePin: 1,
         start: "top top",
-        end: "+=" + totalWidth,
+        // Add 10% extra scroll distance for mobile safety
+        end: `+=${Math.max(totalWidth, viewportWidth * 1.5)}`,
+        invalidateOnRefresh: true,
+        onRefresh: (self) => {
+          // Mobile browsers sometimes recalc height late
+          if (window.innerWidth < 768) self.scroll(self.start);
+        },
+        // markers: true,
       });
 
-      // ✅ Each section reveal animation
+      // 3️⃣ Reveal animations tied to containerAnimation
+      const items = gsap.utils.toArray<HTMLElement>(".project");
       items.forEach((item) => {
         gsap.fromTo(
           item,
@@ -86,20 +99,52 @@ export default function ExploreSection() {
           }
         );
       });
+    };
+
+    // Ensure clean start
+    const onRefreshInit = () => {
+      if (track) gsap.set(track, { x: 0 });
+    };
+    ScrollTrigger.addEventListener("refreshInit", onRefreshInit);
+
+    // Run setup after slight delay (mobile layout settle)
+    const ctx = gsap.context(() => {
+      setTimeout(() => {
+        setup();
+        ScrollTrigger.refresh();
+      }, 300);
     });
 
-    return () => ctx.revert();
+    // Refresh logic on load / resize / orientation change
+    const hardRefresh = () => {
+      setTimeout(() => {
+        setup();
+        ScrollTrigger.refresh();
+      }, 200);
+    };
+    window.addEventListener("load", hardRefresh);
+    window.addEventListener("resize", hardRefresh);
+    window.addEventListener("orientationchange", hardRefresh);
+
+    return () => {
+      ScrollTrigger.removeEventListener("refreshInit", onRefreshInit);
+      window.removeEventListener("load", hardRefresh);
+      window.removeEventListener("resize", hardRefresh);
+      window.removeEventListener("orientationchange", hardRefresh);
+      ctx.revert();
+    };
   }, []);
 
   return (
     <section
       ref={sectionRef}
-      className="relative w-screen h-screen overflow-hidden"
+      id="our-work"
+      className="relative z-1 w-screen h-svh overflow-hidden isolate"
     >
       {/* Horizontal Track */}
       <div
         ref={trackRef}
-        className="absolute top-0 left-0 h-full flex"
+        className="absolute top-0 left-0 h-[100svh] flex"
         style={{ width: `${projects.length * 100}vw` }}
       >
         {projects.map((p, i) => (
@@ -112,7 +157,7 @@ export default function ExploreSection() {
        ================================= */}
             {i === 1 && (
               <motion.div
-                className="relative w-full h-full flex flex-col items-center justify-center text-center"
+                className="relative w-full h-[100svh] flex flex-col items-center justify-center text-center"
                 initial={{ opacity: 0.3 }}
                 whileHover={{ opacity: 1, scale: 1.02 }}
                 transition={{ duration: 0.6 }}

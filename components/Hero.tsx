@@ -418,6 +418,7 @@ export default function Hero() {
               src={src}
               alt={`Hero ${i + 1}`}
               fill
+              sizes="400px"
               priority={i === 0}
               className="panel-img object-cover"
             />
