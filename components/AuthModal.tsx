@@ -212,7 +212,7 @@ export default function AuthModal({
         {step === "phone" ? (
           <>
             <div className="flex items-center border rounded-full overflow-hidden mb-2">
-              <span className="px-3 text-sm font-semibold text-gray-600 bg-gray-100 border-r">
+              <span className="px-3 text-sm h-full font-semibold text-gray-600 bg-gray-100 border-r">
                 +91
               </span>
               <input

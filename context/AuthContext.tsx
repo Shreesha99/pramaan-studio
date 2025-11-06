@@ -37,16 +37,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ✅ Load user from Firebase listener — this always runs when auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        localStorage.setItem("pramaan_user", JSON.stringify(firebaseUser));
-      } else {
-        setUser(null);
-        localStorage.removeItem("pramaan_user");
-      }
+      setUser(firebaseUser);
       setLoading(false);
     });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          setUser(result.user);
+        }
+      })
+      .catch(console.error);
   }, []);
 
   // ✅ Also handle redirect results (first page load after redirect)

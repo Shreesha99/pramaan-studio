@@ -15,18 +15,23 @@ export default function HomePage() {
   return (
     <>
       <Header />
-      <main>
-        <Hero />
-        <section className="reveal-section">
-          <NewCollection />
-        </section>
-        <section className="reveal-section">
-          <FeaturedCollection />
-        </section>
-        <section className="reveal-section">
-          <ExploreSection />
-        </section>
+
+      <main className="overflow-x-hidden">
+        {/* NORMAL VERTICAL SECTIONS */}
+        <div id="vertical-content">
+          <Hero />
+          <section className="reveal-section">
+            <NewCollection />
+          </section>
+          <section className="reveal-section">
+            <FeaturedCollection />
+          </section>
+        </div>
+
+        {/* FULL-SCREEN PINNED SECTION */}
+        <ExploreSection />
       </main>
+
       <Footer />
     </>
   );

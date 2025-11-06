@@ -10,20 +10,20 @@ const categories = [
   {
     title: "Hoodies",
     subtitle: "Best Seller",
-    img: "https://images.unsplash.com/photo-1520975918319-6fcb95fd80ca?auto=format&fit=crop&w=800&q=80",
+    img: "/assets/img/hoodies/bundle.png",
     highlight: true,
   },
   {
     title: "T-Shirts",
-    img: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=800&q=80",
+    img: "/assets/img/round-neck/blue-shirt.png",
   },
   {
     title: "Mugs",
-    img: "https://images.unsplash.com/photo-1517685352821-92cf88aee5a5?auto=format&fit=crop&w=800&q=80",
+    img: "/assets/img/mugs.png",
   },
   {
     title: "Bottles",
-    img: "https://images.unsplash.com/photo-1626785774625-dda21735946f?auto=format&fit=crop&w=800&q=80",
+    img: "/assets/img/bottle.png",
   },
 ];
 

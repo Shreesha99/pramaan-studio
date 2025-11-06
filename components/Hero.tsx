@@ -4,13 +4,12 @@ import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 
-// ✅ Reliable 1920x1080 Unsplash images (direct IDs, no weird params)
 const heroImages = [
-  "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?auto=format&fit=crop&w=1920&h=1080&q=80",
-  "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1920&h=1080&q=80",
-  "https://images.unsplash.com/photo-1491553895911-0055eca6402d?auto=format&fit=crop&w=1920&h=1080&q=80",
-  "https://images.unsplash.com/photo-1514995428455-447d4443fa7f?auto=format&fit=crop&w=1920&h=1080&q=80",
-  "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1920&h=1080&q=80",
+  "/assets/img/Hoodies-with-Zip/model.png",
+  "/assets/img/round-neck/bundle.png",
+  "/assets/img/Sweatshirts/model.png",
+  "/assets/img/mugs.png",
+  "/assets/img/Hoodies/model.png",
 ];
 
 export default function Hero() {
@@ -24,6 +23,7 @@ export default function Hero() {
   const tickerRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const mouseIconRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const l1 = line1Ref.current;
@@ -33,9 +33,9 @@ export default function Hero() {
     if (!l1 || !l2 || !l3) return;
 
     const lines = [
-      { el: l1, text: "Create.", color: "#FFFFFF" },
-      { el: l2, text: "Customize.", color: "#b69253" },
-      { el: l3, text: "Express.", color: "#146032" },
+      { el: l1, text: "Create.", color: "#000000", bg: "#FFFFFF" }, // white bg, black text
+      { el: l2, text: "Customize.", color: "#FFFFFF", bg: "#b69253" }, // gold bg, white text
+      { el: l3, text: "Express.", color: "#FFFFFF", bg: "#146032" }, // green bg, white text
     ];
 
     const typeLine = (el: HTMLElement, text: string, duration = 0.05) =>
@@ -79,6 +79,8 @@ export default function Hero() {
       while (true) {
         for (let line of lines) {
           line.el.style.color = line.color;
+          line.el.style.backgroundColor = line.bg;
+          line.el.style.padding = "0px 12px ";
           await typeLine(line.el, line.text);
           await new Promise((res) => setTimeout(res, 300));
         }
@@ -264,6 +266,18 @@ export default function Hero() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!mouseIconRef.current) return;
+
+    gsap.to(mouseIconRef.current, {
+      y: 4,
+      duration: 0.8,
+      repeat: -1,
+      yoyo: true,
+      ease: "power1.inOut",
+    });
+  }, []);
+
   // --- FIX 2: Custom cursor that replaces default inside the section
   useEffect(() => {
     const cursor = cursorRef.current;
@@ -328,13 +342,39 @@ export default function Hero() {
       {/* Custom Black Cursor (visible on all sizes; acts as cursor inside section) */}
       <div
         ref={cursorRef}
-        className="fixed z-[70] top-0 left-0 w-20 h-20 rounded-full bg-black text-white 
-                   flex items-center justify-center text-[16px]
-                   pointer-events-none opacity-0 scale-0"
+        className="hero-cursor fixed z-[70] top-0 left-0 w-20 h-20 w-auto bg-black text-white 
+             flex items-center justify-center 
+             pointer-events-none opacity-0 scale-0 p-2 rounded-full"
       >
-        Scroll
-        <br />
-        Down
+        <div ref={mouseIconRef}>
+          <svg
+            width="50"
+            height="50"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            transform="rotate(0 0 0)"
+          >
+            <path
+              d="M11.4698 16.2776C11.7626 16.5702 12.2372 16.5702 12.5301 16.2776L14.7801 14.0291C15.0731 13.7363 15.0733 13.2614 14.7805 12.9684C14.4877 12.6754 14.0129 12.6753 13.7199 12.9681L11.9999 14.6868L10.2802 12.9681C9.98718 12.6753 9.5123 12.6754 9.2195 12.9684C8.9267 13.2614 8.92685 13.7363 9.21984 14.0291L11.4698 16.2776Z"
+              fill="#ffffff"
+            />
+            <path
+              d="M12 9.05488C11.5582 9.05488 11.2 8.69671 11.2 8.25488C11.2 7.81306 11.5582 7.45478 12 7.45478C12.4418 7.45478 12.8 7.81295 12.8 8.25478C12.8 8.69661 12.4418 9.05488 12 9.05488Z"
+              fill="#ffffff"
+            />
+            <path
+              d="M11.2 11.0713C11.2 11.5131 11.5582 11.8713 12 11.8713C12.4418 11.8713 12.8 11.5131 12.8 11.0713C12.8 10.6295 12.4418 10.2712 12 10.2712C11.5582 10.2712 11.2 10.6295 11.2 11.0713Z"
+              fill="#ffffff"
+            />
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M12 2.00098C7.85786 2.00098 4.5 5.35884 4.5 9.50098V14.501C4.5 18.6431 7.85786 22.001 12 22.001C16.1421 22.001 19.5 18.6431 19.5 14.501V9.50098C19.5 5.35884 16.1421 2.00098 12 2.00098ZM6 9.50098C6 6.18727 8.68629 3.50098 12 3.50098C15.3137 3.50098 18 6.18727 18 9.50098V14.501C18 17.8147 15.3137 20.501 12 20.501C8.68629 20.501 6 17.8147 6 14.501V9.50098Z"
+              fill="#ffffff"
+            />
+          </svg>
+        </div>
       </div>
 
       {/* 🔥 Scrolling Strip */}
@@ -344,18 +384,20 @@ export default function Hero() {
           className="flex whitespace-nowrap font-semibold text-sm sm:text-lg uppercase tracking-widest gap-20 px-10 opacity-90"
         >
           {[
-            "✦ New Drop Every Month",
-            "✦ Exclusive Streetwear Arrivals",
-            "✦ Limited Collections",
-            "✦ Don’t Miss Out",
+            "✦ New Drop Every Month ✦",
+            "✦ Exclusive Clothing Arrivals ✦",
+            "✦ Unique Apparels ✦",
+            "✦ Limited Collections ✦",
+            "✦ Don’t Miss Out ✦",
           ].map((text, i) => (
             <span key={i}>{text}</span>
           ))}
           {[
-            "✦ New Drop Every Month",
-            "✦ Exclusive Streetwear Arrivals",
-            "✦ Limited Collections",
-            "✦ Don’t Miss Out",
+            "✦ New Drop Every Month ✦",
+            "✦ Exclusive Clothing Arrivals ✦",
+            "✦ Unique Apparels ✦",
+            "✦ Limited Collections ✦",
+            "✦ Don’t Miss Out ✦",
           ].map((text, i) => (
             <span key={i + 4}>{text}</span>
           ))}
@@ -388,8 +430,11 @@ export default function Hero() {
       </div>
 
       {/* Typing title (no glow, clean) */}
-      <div className="absolute bottom-20 left-10 z-[3] pointer-events-none">
-        <h1 className="uppercase font-extrabold tracking-tight leading-[0.9] space-y-3">
+      <div className="absolute bottom-20 left-10 sm:left-10 sm:bottom-20 inset-0 flex flex-col justify-center items-center sm:inset-auto sm:block z-[3] pointer-events-none">
+        <h1
+          className="
+      uppercase font-extrabold tracking-tight leading-[0.9] space-y-3 text-center sm:text-left"
+        >
           <div className="text-[2.5rem] sm:text-[8rem]">
             <span ref={line1Ref}></span>
           </div>

@@ -2,12 +2,15 @@
 
 import { useLenisSmoothScroll } from "../lenis-init";
 
+export function useLenis() {
+  return useLenisSmoothScroll();
+}
+
 export default function LenisProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // run Lenis only on client
   useLenisSmoothScroll();
   return <>{children}</>;
 }

@@ -6,6 +6,7 @@ import { ToastProvider } from "@/context/ToastContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import GlobalAuthModal from "@/components/GlobalAuthModal";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
+import ScrollToTop from "@/components/ScrollToTop";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -24,7 +25,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`{${poppins.className}} bg-white text-gray-900`}>
+      <body
+        className={`${poppins.className} bg-white text-gray-900 overflow-x-hidden overflow-y-auto overscroll-none`}
+      >
         <AuthProvider>
           <ToastProvider>
             <CartProvider>
@@ -32,6 +35,7 @@ export default function RootLayout({
                 {children}
                 <GlobalAuthModal />
                 <FloatingWhatsApp />
+                <ScrollToTop />
               </LenisProvider>{" "}
             </CartProvider>
           </ToastProvider>

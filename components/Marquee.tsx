@@ -11,7 +11,7 @@ export default function Marquee() {
     if (!marqueeRef.current || !innerRef.current) return;
 
     // Create repeated spaced text
-    const base = "  HOODIES  •  T-SHIRTS  •  MUGS  •  BOTTLES  •  ";
+    const base = "  HOODIES  •  T-SHIRTS  •  MUGS  •  BOTTLES  •  KEYCHAINS  •";
 
     innerRef.current.innerHTML = base + base;
 

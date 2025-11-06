@@ -150,30 +150,33 @@ export default function Header() {
     }
   }, [dropdownOpen]);
 
-  // ✅ Show welcome toast on login, but only once per session
   useEffect(() => {
     if (!user) return;
 
-    // Prevent duplicate toasts on refresh
+    const creation = user.metadata?.creationTime;
+    const lastSignIn = user.metadata?.lastSignInTime;
+
+    // ✅ Ensure metadata exists before continuing
+    if (!creation || !lastSignIn) return;
+
     const shownKey = `toastShownFor_${user.uid}`;
-    const hasShown = sessionStorage.getItem(shownKey);
+    if (sessionStorage.getItem(shownKey)) return;
 
-    if (hasShown) return; // already welcomed in this session
+    // ✅ Safe conversion now (no undefined)
+    const createdAt = new Date(creation).getTime();
+    const signedAt = new Date(lastSignIn).getTime();
 
-    const creationTime = user.metadata?.creationTime;
-    const lastSignInTime = user.metadata?.lastSignInTime;
+    const isNewUser = createdAt === signedAt;
 
-    if (creationTime && creationTime === lastSignInTime) {
-      // New user
-      showToast("Welcome to PraMaan! 🎉", "success");
-    } else {
-      // Returning user
-      showToast(`Welcome back, ${user.displayName || "User"}!`, "success");
-    }
+    showToast(
+      isNewUser
+        ? "Welcome to PraMaan! 🎉"
+        : `Welcome back, ${user.displayName || "User"}!`,
+      "success"
+    );
 
-    // Mark as shown for this session
     sessionStorage.setItem(shownKey, "true");
-  }, [user]);
+  }, [user?.uid]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -623,7 +626,7 @@ function ProfileDropdownContent({
               onChange={handleImageChange}
               className="hidden"
             />
-            📷
+            ✏️
           </label>
         </div>
         <div>
