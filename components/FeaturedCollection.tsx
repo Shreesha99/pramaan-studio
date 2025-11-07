@@ -292,7 +292,7 @@ export default function FeaturedCollection() {
                   </div>
 
                   {/* Add to cart section */}
-                  <div className="mt-4 relative min-h-[48px] flex items-center justify-center">
+                  <div className="mt-4 relative min-h-12 flex items-center justify-center">
                     {availableStock === 0 ? (
                       <span className="text-red-500 text-sm font-semibold">
                         Out of Stock

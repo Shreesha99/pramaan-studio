@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import GlobalAuthModal from "@/components/GlobalAuthModal";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import ScrollToTop from "@/components/ScrollToTop";
+import Preloader from "@/components/Preloader";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -32,6 +33,7 @@ export default function RootLayout({
           <ToastProvider>
             <CartProvider>
               <LenisProvider>
+                <Preloader />
                 {children}
                 <GlobalAuthModal />
                 <FloatingWhatsApp />

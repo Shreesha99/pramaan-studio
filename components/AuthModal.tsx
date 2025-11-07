@@ -26,7 +26,7 @@ export default function AuthModal({
   const [isResendDisabled, setIsResendDisabled] = useState(true);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // ✅ Reset all fields whenever modal opens
+  /* ✅ Reset Fields When Open */
   useEffect(() => {
     if (isOpen) {
       setStep("phone");
@@ -39,23 +39,21 @@ export default function AuthModal({
     }
   }, [isOpen]);
 
-  // Animate modal
+  /* ✅ Animate Modal */
   useEffect(() => {
     if (isOpen && modalRef.current) {
       gsap.fromTo(
         modalRef.current,
         { y: 40, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.3, ease: "power3.out" }
+        { y: 0, opacity: 1, duration: 0.35, ease: "power3.out" }
       );
     }
   }, [isOpen]);
 
-  // ✅ Correct Recaptcha initialization order
-  // Initialize reCAPTCHA fresh every time modal opens
+  /* ✅ Setup reCAPTCHA fresh each time */
   useEffect(() => {
     if (!isOpen || typeof window === "undefined" || !auth) return;
 
-    // ✅ Destroy old recaptcha
     if ((window as any).recaptchaVerifier) {
       try {
         (window as any).recaptchaVerifier.clear();
@@ -63,7 +61,6 @@ export default function AuthModal({
       (window as any).recaptchaVerifier = null;
     }
 
-    // ✅ Create fresh verifier
     const verifier = new RecaptchaVerifier(auth, "recaptcha-container", {
       size: "invisible",
       "expired-callback": () => console.warn("⚠️ reCAPTCHA expired"),
@@ -74,7 +71,7 @@ export default function AuthModal({
     verifier.render().catch((err) => console.error("Render error:", err));
   }, [isOpen]);
 
-  // Countdown logic for resend
+  /* ✅ Countdown Timer */
   useEffect(() => {
     let interval: any;
     if (isResendDisabled && step === "otp") {
@@ -92,7 +89,7 @@ export default function AuthModal({
     return () => clearInterval(interval);
   }, [isResendDisabled, step]);
 
-  // Send OTP
+  /* ✅ Send OTP */
   const handlePhoneLogin = async () => {
     setError("");
 
@@ -107,7 +104,7 @@ export default function AuthModal({
       const appVerifier = (window as any).recaptchaVerifier;
 
       if (!appVerifier) {
-        setError("Recaptcha is still initializing. Please wait a moment.");
+        setError("Recaptcha is initializing. Try again in a moment.");
         return;
       }
 
@@ -121,19 +118,19 @@ export default function AuthModal({
       setStep("otp");
       setIsResendDisabled(true);
       setTimer(90);
-    } catch (err: any) {
-      console.error("OTP Error →", err);
-      setError("Failed to send OTP. Please try again.");
+    } catch (err) {
+      console.error("OTP Error:", err);
+      setError("Failed to send OTP. Try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Verify OTP
+  /* ✅ Verify OTP */
   const handleVerifyOtp = async () => {
     setError("");
-    if (!otp.trim()) {
-      setError("Please enter OTP.");
+    if (!otp || otp.length !== 6) {
+      setError("Enter the 6-digit OTP.");
       return;
     }
 
@@ -142,43 +139,45 @@ export default function AuthModal({
       await confirmation.confirm(otp);
       onClose();
     } catch {
-      setError("Invalid OTP. Please try again.");
+      setError("Invalid OTP. Try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Resend OTP
+  /* ✅ Resend OTP */
   const handleResendOtp = async () => {
     if (!phone) return;
     setError("");
+
     try {
       setIsResendDisabled(true);
       setTimer(90);
       const fullPhone = `+91${phone}`;
       const appVerifier = (window as any).recaptchaVerifier;
+
       const newConfirmation = await signInWithPhoneNumber(
         auth,
         fullPhone,
         appVerifier
       );
+
       setConfirmation(newConfirmation);
     } catch (err) {
-      console.error("Resend OTP failed:", err);
-      setError("Failed to resend OTP. Please try again.");
+      console.error("Resend Error:", err);
+      setError("Resend failed. Try again.");
       setIsResendDisabled(false);
     }
   };
 
-  // Google login
-  // Google login (redirect based)
+  /* ✅ Google Login */
   const handleGoogleLogin = async () => {
     setError("");
     try {
-      await login(); // now uses redirect from AuthContext
-      onClose(); // modal closes before redirect happens
+      await login();
+      onClose();
     } catch {
-      setError("Google login failed. Please try again.");
+      setError("Google login failed.");
     }
   };
 
@@ -187,10 +186,12 @@ export default function AuthModal({
   return (
     <div className="fixed inset-0 z-99999 flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div id="recaptcha-container" className="absolute opacity-0" />
+
       <div
         ref={modalRef}
         className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm relative"
       >
+        {/* Close Button */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-500 hover:text-black transition"
@@ -208,53 +209,51 @@ export default function AuthModal({
           Continue with Google
         </button> */}
 
-        {/* PHONE LOGIN */}
+        {/* PHONE SCREEN */}
         {step === "phone" ? (
           <>
-            <div className="flex items-center border rounded-full overflow-hidden mb-2">
-              <span className="px-3 text-sm h-full font-semibold text-gray-600 bg-gray-100 border-r">
+            <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden shadow-sm mb-3 bg-white">
+              <div className="px-4 py-2 bg-gray-100 text-gray-700 font-semibold border-r border-gray-300">
                 +91
-              </span>
+              </div>
               <input
                 type="tel"
-                placeholder="Enter 10-digit number"
+                placeholder="Enter phone number"
                 value={phone}
                 onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, "").slice(0, 10);
-                  setPhone(value);
+                  const v = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setPhone(v);
                 }}
-                className="flex-1 px-4 py-2 text-sm outline-none"
+                className="flex-1 px-4 py-2 text-gray-800 text-sm focus:outline-none"
               />
             </div>
+
             <ErrorText message={error} />
-            <button
+
+            <GsapButton
+              text="Send OTP"
+              loadingText="Sending..."
+              loading={loading}
+              disabled={phone.length !== 10}
               onClick={handlePhoneLogin}
-              disabled={loading}
-              className="w-full py-2 mt-2 bg-gray-800 text-white rounded-full font-semibold hover:bg-gray-900 transition"
-            >
-              {loading ? "Sending OTP..." : "Send OTP"}
-            </button>
+            />
           </>
         ) : (
           <>
-            <input
-              type="text"
-              placeholder="Enter OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              className="w-full border rounded-full px-4 py-2 text-sm outline-none mb-2"
-            />
+            {/* OTP BOXES */}
+            <OTPInput otp={otp} setOtp={setOtp} length={6} />
+
             <ErrorText message={error} />
 
-            <button
+            <GsapButton
+              text="Verify OTP"
+              loadingText="Verifying..."
+              loading={loading}
+              disabled={otp.length !== 6}
               onClick={handleVerifyOtp}
-              disabled={loading}
-              className="w-full py-2 mt-2 bg-gray-800 text-white rounded-full font-semibold hover:bg-gray-900 transition"
-            >
-              {loading ? "Verifying..." : "Verify OTP"}
-            </button>
+            />
 
-            {/* Resend OTP Button + Timer */}
+            {/* RESEND */}
             <div className="text-center mt-4 text-xs text-gray-500">
               Didn’t get OTP?{" "}
               <button
@@ -270,7 +269,7 @@ export default function AuthModal({
               </button>
               {isResendDisabled && (
                 <p className="mt-1 text-gray-400">
-                  Resend available in {Math.floor(timer / 60)}:
+                  Resend in {Math.floor(timer / 60)}:
                   {String(timer % 60).padStart(2, "0")}
                 </p>
               )}
@@ -278,6 +277,104 @@ export default function AuthModal({
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ✅ GSAP Animated Button */
+function GsapButton({
+  text,
+  loadingText,
+  loading,
+  disabled,
+  onClick,
+}: {
+  text: string;
+  loadingText: string;
+  loading: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const bar = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (loading) {
+      gsap.fromTo(
+        bar.current,
+        { x: "-100%" },
+        { x: "100%", duration: 1.2, ease: "linear", repeat: -1 }
+      );
+    } else {
+      gsap.killTweensOf(bar.current);
+      gsap.set(bar.current, { x: "-100%" });
+    }
+  }, [loading]);
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled || loading}
+      className={`relative w-full py-3 rounded-xl font-semibold overflow-hidden transition
+      ${
+        disabled || loading
+          ? "bg-gray-300 text-gray-600"
+          : "bg-black text-white hover:bg-neutral-900"
+      }
+    `}
+    >
+      {/* GSAP loading layer */}
+      <div
+        ref={bar}
+        className="absolute inset-0 bg-white/20 pointer-events-none"
+      />
+      <span className="relative z-10">{loading ? loadingText : text}</span>
+    </button>
+  );
+}
+
+/* ✅ OTP Input Component */
+function OTPInput({
+  otp,
+  setOtp,
+  length,
+}: {
+  otp: string;
+  setOtp: (v: string) => void;
+  length: number;
+}) {
+  const inputs = useRef<Array<HTMLInputElement | null>>([]);
+
+  const handleChange = (value: string, index: number) => {
+    if (!/^\d*$/.test(value)) return;
+
+    const updated = otp.substring(0, index) + value + otp.substring(index + 1);
+    setOtp(updated);
+
+    if (value && index < length - 1) inputs.current[index + 1]?.focus();
+  };
+
+  const handleKeyDown = (e: any, index: number) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      inputs.current[index - 1]?.focus();
+    }
+  };
+
+  return (
+    <div className="flex gap-3 w-full justify-center my-3">
+      {Array.from({ length }).map((_, i) => (
+        <input
+          key={i}
+          ref={(el) => {
+            inputs.current[i] = el;
+          }}
+          type="text"
+          maxLength={1}
+          value={otp[i] || ""}
+          onChange={(e) => handleChange(e.target.value, i)}
+          onKeyDown={(e) => handleKeyDown(e, i)}
+          className="w-11 h-14 text-center text-xl font-semibold border border-gray-300 rounded-xl focus:ring-1 focus:ring-black"
+        />
+      ))}
     </div>
   );
 }

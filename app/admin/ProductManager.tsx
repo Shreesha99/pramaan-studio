@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   collection,
   addDoc,
@@ -12,8 +12,60 @@ import {
 import { ref, uploadBytes, getDownloadURL, getStorage } from "firebase/storage";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/context/ToastContext";
+import gsap from "gsap";
 
 const storage = getStorage();
+
+/** Reusable GSAP Loading Button */
+function GsapButton({
+  onClick,
+  loading,
+  disabled,
+  text,
+  loadingText,
+  className = "",
+}: {
+  onClick: () => void | Promise<void>;
+  loading: boolean;
+  disabled?: boolean;
+  text: string;
+  loadingText: string;
+  className?: string;
+}) {
+  const barRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (loading && barRef.current) {
+      gsap.fromTo(
+        barRef.current,
+        { x: "-100%" },
+        { x: "100%", duration: 1.2, ease: "linear", repeat: -1 }
+      );
+    } else {
+      gsap.killTweensOf(barRef.current);
+      gsap.set(barRef.current, { x: "-100%" });
+    }
+  }, [loading]);
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled || loading}
+      className={`relative overflow-hidden rounded-full font-semibold transition
+        ${disabled || loading ? "opacity-70 cursor-not-allowed" : ""}
+        ${className}
+      `}
+    >
+      {/* sliding fill */}
+      <div
+        ref={barRef}
+        className="absolute inset-0 bg-white/20 pointer-events-none"
+        aria-hidden
+      />
+      <span className="relative z-10">{loading ? loadingText : text}</span>
+    </button>
+  );
+}
 
 export default function ProductManager() {
   const { showToast } = useToast();
@@ -64,6 +116,11 @@ export default function ProductManager() {
   const [editFiles, setEditFiles] = useState<FileList | null>(null);
   const [editUploading, setEditUploading] = useState(false);
 
+  // 🔁 Button loading states (for GSAP)
+  const [addingProductLoading, setAddingProductLoading] = useState(false);
+  const [addingCategoryLoading, setAddingCategoryLoading] = useState(false);
+  const [addingColorLoading, setAddingColorLoading] = useState(false);
+
   // 🧾 Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
@@ -88,6 +145,7 @@ export default function ProductManager() {
     }
 
     try {
+      setAddingProductLoading(true);
       const docRef = await addDoc(collection(db, "products"), {
         ...newProduct,
         price: Number(newProduct.price),
@@ -110,10 +168,12 @@ export default function ProductManager() {
     } catch (err) {
       console.error(err);
       showToast("Failed to add product.", "error");
+    } finally {
+      setAddingProductLoading(false);
     }
   };
 
-  // 🗑️ Delete Product
+  // 🗑️ Delete Product (NO animation per your request)
   const handleDeleteProduct = async (id: string) => {
     try {
       await deleteDoc(doc(db, "products", id));
@@ -189,7 +249,7 @@ export default function ProductManager() {
   };
 
   // ➕ Add New Category
-  const handleAddNewCategory = () => {
+  const handleAddNewCategory = async () => {
     if (!newCategoryInput.trim()) {
       showToast("Please enter a category name.", "info");
       return;
@@ -199,15 +259,22 @@ export default function ProductManager() {
       showToast("Category already exists.", "info");
       return;
     }
-    setCategories((prev) => [...prev, cat]);
-    setNewProduct((prev) => ({ ...prev, category: cat }));
-    setNewCategoryInput("");
-    setAddingNewCategory(false);
-    showToast(`${cat} added to category list!`, "success");
+
+    try {
+      setAddingCategoryLoading(true);
+      // (If you later persist categories to Firestore, do it here)
+      setCategories((prev) => [...prev, cat]);
+      setNewProduct((prev) => ({ ...prev, category: cat }));
+      setNewCategoryInput("");
+      setAddingNewCategory(false);
+      showToast(`${cat} added to category list!`, "success");
+    } finally {
+      setAddingCategoryLoading(false);
+    }
   };
 
   // ➕ Add New Color
-  const handleAddNewColor = () => {
+  const handleAddNewColor = async () => {
     if (!newColorInput.trim()) {
       showToast("Please enter a color name.", "info");
       return;
@@ -217,11 +284,17 @@ export default function ProductManager() {
       showToast("Color already exists.", "info");
       return;
     }
-    setAvailableColors((prev) => [...prev, color]);
-    setColorName(color);
-    setNewColorInput("");
-    setAddingNewColor(false);
-    showToast(`${color} added to color list!`, "success");
+
+    try {
+      setAddingColorLoading(true);
+      setAvailableColors((prev) => [...prev, color]);
+      setColorName(color);
+      setNewColorInput("");
+      setAddingNewColor(false);
+      showToast(`${color} added to color list!`, "success");
+    } finally {
+      setAddingColorLoading(false);
+    }
   };
 
   // 🎨 Add Color Variant
@@ -300,20 +373,23 @@ export default function ProductManager() {
     }
   };
 
-  // ❌ Delete Color Variant
   const handleDeleteColor = async (productId: string, color: string) => {
     try {
       const refDoc = doc(db, "products", productId);
       const product = products.find((p) => p.id === productId);
       if (!product) return;
+
       const updatedVariants = { ...product.variants };
       delete updatedVariants[color];
+
       await updateDoc(refDoc, { variants: updatedVariants });
+
       setProducts((prev) =>
         prev.map((p) =>
           p.id === productId ? { ...p, variants: updatedVariants } : p
         )
       );
+
       showToast(`${color} variant deleted successfully.`, "success");
     } catch {
       showToast("Failed to delete color.", "error");
@@ -326,7 +402,7 @@ export default function ProductManager() {
         🧩 Product Management
       </h1>
 
-      {/* ➕ Add Product (unchanged layout, added showProduct) */}
+      {/* ➕ Add Product */}
       <div className="max-w-3xl mx-auto mb-10 bg-white shadow-md p-6 rounded-xl border">
         <h2 className="text-xl font-semibold mb-4">Add New Product</h2>
 
@@ -384,12 +460,14 @@ export default function ProductManager() {
                 onChange={(e) => setNewCategoryInput(e.target.value)}
                 className="flex-1 px-3 py-2 border rounded-md text-sm"
               />
-              <button
+              <GsapButton
                 onClick={handleAddNewCategory}
-                className="px-3 py-2 bg-black text-white rounded-md text-sm"
-              >
-                Add
-              </button>
+                loading={addingCategoryLoading}
+                disabled={!newCategoryInput.trim()}
+                text="Add"
+                loadingText="Adding..."
+                className="px-4 py-2 bg-black text-white text-sm"
+              />
             </div>
           )}
         </div>
@@ -430,12 +508,16 @@ export default function ProductManager() {
           </label>
         </div>
 
-        <button
+        <GsapButton
           onClick={handleAddProduct}
-          className="mt-5 px-6 py-2 bg-black text-white rounded-full text-sm font-semibold hover:bg-gray-900 transition"
-        >
-          Add Product
-        </button>
+          loading={addingProductLoading}
+          disabled={
+            !newProduct.name.trim() || !newProduct.price || !newProduct.category
+          }
+          text="Add Product"
+          loadingText="Adding..."
+          className="mt-5 px-6 py-2 bg-black text-white text-sm"
+        />
       </div>
 
       {/* 🧱 Product Grid */}
@@ -451,6 +533,7 @@ export default function ProductManager() {
               <button
                 onClick={() => handleDeleteProduct(p.id)}
                 className="absolute top-3 right-3 text-xs text-red-500 hover:text-red-700"
+                title="Delete product"
               >
                 ✕
               </button>
@@ -658,21 +741,21 @@ export default function ProductManager() {
               >
                 Cancel
               </button>
-              <button
+
+              <GsapButton
                 onClick={handleUpdateProduct}
-                disabled={editUploading}
-                className={`flex-1 bg-black text-white rounded-full py-2 text-sm font-medium transition ${
-                  editUploading ? "opacity-60 cursor-wait" : "hover:bg-gray-900"
-                }`}
-              >
-                {editUploading ? "Saving..." : "Save"}
-              </button>
+                loading={editUploading}
+                disabled={false}
+                text="Save"
+                loadingText="Saving..."
+                className="flex-1 bg-black text-white rounded-full py-2 text-sm font-medium"
+              />
             </div>
           </div>
         </div>
       )}
 
-      {/* 🎨 Color Modal (unchanged) */}
+      {/* 🎨 Color Modal */}
       {activeProduct && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-8 shadow-xl w-[95%] sm:w-[500px]">
@@ -712,12 +795,14 @@ export default function ProductManager() {
                   onChange={(e) => setNewColorInput(e.target.value)}
                   className="flex-1 px-3 py-2 border rounded-md text-sm"
                 />
-                <button
+                <GsapButton
                   onClick={handleAddNewColor}
+                  loading={addingColorLoading}
+                  disabled={!newColorInput.trim()}
+                  text="Add"
+                  loadingText="Adding..."
                   className="px-3 py-2 bg-black text-white rounded-md text-sm"
-                >
-                  Add
-                </button>
+                />
               </div>
             )}
 
@@ -759,13 +844,15 @@ export default function ProductManager() {
               >
                 Cancel
               </button>
-              <button
+
+              <GsapButton
                 onClick={handleAddColorVariant}
-                disabled={uploading}
-                className="flex-1 bg-black text-white rounded-full py-2 text-sm hover:bg-gray-900 disabled:opacity-50"
-              >
-                {uploading ? "Uploading..." : "Save Color"}
-              </button>
+                loading={uploading}
+                disabled={!colorName || !stock || !files?.length}
+                text="Save Color"
+                loadingText="Uploading..."
+                className="flex-1 bg-black text-white rounded-full py-2 text-sm"
+              />
             </div>
           </div>
         </div>

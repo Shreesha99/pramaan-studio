@@ -144,7 +144,7 @@ export default function ExploreSection() {
       {/* Horizontal Track */}
       <div
         ref={trackRef}
-        className="absolute top-0 left-0 h-[100svh] flex"
+        className="absolute top-0 left-0 h-svh flex"
         style={{ width: `${projects.length * 100}vw` }}
       >
         {projects.map((p, i) => (
@@ -157,7 +157,7 @@ export default function ExploreSection() {
        ================================= */}
             {i === 1 && (
               <motion.div
-                className="relative w-full h-[100svh] flex flex-col items-center justify-center text-center"
+                className="relative w-full h-svh flex flex-col items-center justify-center text-center"
                 initial={{ opacity: 0.3 }}
                 whileHover={{ opacity: 1, scale: 1.02 }}
                 transition={{ duration: 0.6 }}
