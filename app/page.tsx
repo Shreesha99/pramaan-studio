@@ -23,12 +23,12 @@ export default function HomePage() {
           <section id="products" className="reveal-section">
             <NewCollection />
           </section>
+
+          <ExploreSection />
           <section id="featured" className="reveal-section">
             <FeaturedCollection />
           </section>
         </div>
-
-        <ExploreSection />
       </main>
 
       <Footer />
