@@ -29,8 +29,8 @@ export default function RootLayout({
       <body
         className={`${poppins.className} bg-white text-gray-900 overflow-x-hidden overflow-y-auto overscroll-none`}
       >
-        <AuthProvider>
-          <ToastProvider>
+        <ToastProvider>
+          <AuthProvider>
             <CartProvider>
               <LenisProvider>
                 <Preloader />
@@ -40,8 +40,8 @@ export default function RootLayout({
                 <ScrollToTop />
               </LenisProvider>{" "}
             </CartProvider>
-          </ToastProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

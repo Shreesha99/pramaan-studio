@@ -16,6 +16,7 @@ import {
   onAuthStateChanged,
   User,
 } from "firebase/auth";
+import { useToast } from "./ToastContext";
 
 interface AuthContextType {
   user: User | null;
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const { showToast } = useToast();
 
   // ✅ Load user from Firebase listener — this always runs when auth state changes
   useEffect(() => {
@@ -44,25 +46,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          setUser(result.user);
-        }
-      })
-      .catch(console.error);
-  }, []);
-
-  // ✅ Also handle redirect results (first page load after redirect)
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
+    (async () => {
+      try {
+        const result = await getRedirectResult(auth);
         if (result?.user) {
           setUser(result.user);
           localStorage.setItem("pramaan_user", JSON.stringify(result.user));
         }
-      })
-      .catch((err) => console.error("Google redirect error:", err));
+      } catch (err) {
+        console.error("Google redirect error:", err);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   // ✅ Fallback: restore user from localStorage in case Firebase is slow to rehydrate
@@ -87,9 +83,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 🔹 Logout
   const logout = async () => {
-    await signOut(auth);
-    localStorage.removeItem("pramaan_user");
-    setUser(null);
+    try {
+      await signOut(auth);
+      localStorage.removeItem("pramaan_user");
+      setUser(null);
+      showToast("Logged out successfully.", "success");
+    } catch (err) {
+      console.error("Logout error:", err);
+      showToast("Logout failed. Please try again.", "error");
+    }
   };
 
   const openAuthModal = () => setShowAuthModal(true);

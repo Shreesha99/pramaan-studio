@@ -25,9 +25,6 @@ export default function HomePage() {
           </section>
 
           <ExploreSection />
-          <section id="featured" className="reveal-section">
-            <FeaturedCollection />
-          </section>
         </div>
       </main>
 

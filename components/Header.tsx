@@ -151,34 +151,6 @@ export default function Header() {
     }
   }, [dropdownOpen]);
 
-  useEffect(() => {
-    if (!user) return;
-
-    const creation = user.metadata?.creationTime;
-    const lastSignIn = user.metadata?.lastSignInTime;
-
-    // ✅ Ensure metadata exists before continuing
-    if (!creation || !lastSignIn) return;
-
-    const shownKey = `toastShownFor_${user.uid}`;
-    if (sessionStorage.getItem(shownKey)) return;
-
-    // ✅ Safe conversion now (no undefined)
-    const createdAt = new Date(creation).getTime();
-    const signedAt = new Date(lastSignIn).getTime();
-
-    const isNewUser = createdAt === signedAt;
-
-    showToast(
-      isNewUser
-        ? "Welcome to PraMaan! 🎉"
-        : `Welcome back, ${user.displayName || "User"}!`,
-      "success"
-    );
-
-    sessionStorage.setItem(shownKey, "true");
-  }, [user?.uid]);
-
   // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -706,14 +678,8 @@ function ProfileDropdownContent({
       <div className="mt-4 border-t border-gray-200 pt-3">
         <button
           onClick={async () => {
-            try {
-              await logout();
-              showToast("Logged out successfully.", "success");
-              onClose();
-            } catch (err) {
-              console.error("Logout error:", err);
-              showToast("Logout failed. Try again.", "error");
-            }
+            await logout();
+            onClose();
           }}
           className="w-full flex items-center justify-center gap-2 py-2 rounded-full border border-gray-300 hover:bg-gray-50 text-sm font-medium"
         >

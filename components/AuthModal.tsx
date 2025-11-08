@@ -3,10 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { auth } from "@/lib/firebase";
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
+} from "firebase/auth";
 import { gsap } from "gsap";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import ErrorText from "@/components/ErrorText";
+import { useToast } from "@/context/ToastContext";
 
 export default function AuthModal({
   isOpen,
@@ -16,26 +23,24 @@ export default function AuthModal({
   onClose: () => void;
 }) {
   const { login } = useAuth();
+  const { showToast } = useToast();
+
+  const [mode, setMode] = useState<"phone" | "otp" | "email">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState<any>(null);
-  const [step, setStep] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [timer, setTimer] = useState(90);
   const [isResendDisabled, setIsResendDisabled] = useState(true);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  /* ✅ Reset Fields When Open */
+  /* ✅ Reset on Open */
   useEffect(() => {
     if (isOpen) {
-      setStep("phone");
-      setPhone("");
-      setOtp("");
-      setConfirmation(null);
-      setError("");
-      setTimer(90);
-      setIsResendDisabled(true);
+      resetForm();
     }
   }, [isOpen]);
 
@@ -50,7 +55,7 @@ export default function AuthModal({
     }
   }, [isOpen]);
 
-  /* ✅ Setup reCAPTCHA fresh each time */
+  /* ✅ Setup reCAPTCHA for Phone Login */
   useEffect(() => {
     if (!isOpen || typeof window === "undefined" || !auth) return;
 
@@ -67,14 +72,13 @@ export default function AuthModal({
     });
 
     (window as any).recaptchaVerifier = verifier;
-
     verifier.render().catch((err) => console.error("Render error:", err));
   }, [isOpen]);
 
-  /* ✅ Countdown Timer */
+  /* ✅ Countdown for OTP resend */
   useEffect(() => {
     let interval: any;
-    if (isResendDisabled && step === "otp") {
+    if (isResendDisabled && mode === "otp") {
       interval = setInterval(() => {
         setTimer((prev) => {
           if (prev <= 1) {
@@ -87,9 +91,32 @@ export default function AuthModal({
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isResendDisabled, step]);
+  }, [isResendDisabled, mode]);
 
-  /* ✅ Send OTP */
+  /* ✅ Reset all fields */
+  const resetForm = () => {
+    setMode("phone");
+    setPhone("");
+    setOtp("");
+    setEmail("");
+    setPassword("");
+    setConfirmation(null);
+    setError("");
+    setTimer(90);
+    setIsResendDisabled(true);
+  };
+
+  /* ✅ Reset error on tab switch */
+  const handleModeChange = (newMode: "phone" | "email") => {
+    setMode(newMode);
+    setError("");
+    setPhone("");
+    setOtp("");
+    setEmail("");
+    setPassword("");
+  };
+
+  /* ✅ Phone Login (Send OTP) */
   const handlePhoneLogin = async () => {
     setError("");
 
@@ -102,20 +129,15 @@ export default function AuthModal({
       setLoading(true);
       const fullPhone = `+91${phone}`;
       const appVerifier = (window as any).recaptchaVerifier;
-
-      if (!appVerifier) {
-        setError("Recaptcha is initializing. Try again in a moment.");
-        return;
-      }
+      if (!appVerifier) throw new Error("Recaptcha not ready");
 
       const confirmationResult = await signInWithPhoneNumber(
         auth,
         fullPhone,
         appVerifier
       );
-
       setConfirmation(confirmationResult);
-      setStep("otp");
+      setMode("otp");
       setIsResendDisabled(true);
       setTimer(90);
     } catch (err) {
@@ -137,6 +159,7 @@ export default function AuthModal({
     try {
       setLoading(true);
       await confirmation.confirm(otp);
+      showToast("Welcome back!", "success");
       onClose();
     } catch {
       setError("Invalid OTP. Try again.");
@@ -161,7 +184,6 @@ export default function AuthModal({
         fullPhone,
         appVerifier
       );
-
       setConfirmation(newConfirmation);
     } catch (err) {
       console.error("Resend Error:", err);
@@ -175,9 +197,93 @@ export default function AuthModal({
     setError("");
     try {
       await login();
+      showToast("Welcome back!", "success");
       onClose();
     } catch {
       setError("Google login failed.");
+    }
+  };
+
+  /* ✅ Email + Password Login/Register */
+  const handleEmailPasswordLogin = async () => {
+    setError("");
+
+    if (!email || !email.includes("@")) {
+      setError("Enter a valid email address.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // 1️⃣ Try to sign in
+      await signInWithEmailAndPassword(auth, email, password);
+      showToast("Welcome back!", "success");
+      onClose();
+    } catch (err: any) {
+      console.error("Email sign-in error:", err);
+
+      // Handle wrong password or deleted user (Firebase merged both)
+      if (
+        err.code === "auth/invalid-credential" ||
+        err.code === "auth/wrong-password"
+      ) {
+        try {
+          // 2️⃣ Check if user exists in Firebase
+          const methods = await fetchSignInMethodsForEmail(auth, email);
+          console.log("Sign-in methods for", email, methods);
+
+          if (methods.length > 0) {
+            // Existing user, wrong password
+            setError("Incorrect password. Please try again.");
+            setLoading(false);
+            return;
+          } else {
+            // Deleted/non-existent user → create new one
+            await createUserWithEmailAndPassword(auth, email, password);
+            showToast(
+              "Welcome to PraMaan! Account created successfully.",
+              "success"
+            );
+            onClose();
+            return;
+          }
+        } catch (checkErr) {
+          console.warn("fetchSignInMethodsForEmail failed:", checkErr);
+          setError(
+            "Something went wrong verifying this email. Try again later."
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
+      // If user not found explicitly
+      if (err.code === "auth/user-not-found") {
+        await createUserWithEmailAndPassword(auth, email, password);
+        showToast(
+          "Welcome to PraMaan! Account created successfully.",
+          "success"
+        );
+        onClose();
+        return;
+      }
+
+      if (err.code === "auth/invalid-email") {
+        setError("Invalid email format. Please enter a correct one.");
+        setLoading(false);
+        return;
+      }
+
+      // Generic fallback
+      setError("Login failed. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -201,18 +307,35 @@ export default function AuthModal({
 
         <h2 className="text-center text-2xl font-semibold mb-5">Sign In</h2>
 
-        {/* GOOGLE LOGIN */}
-        {/* <button
+        {/* Tab Switcher */}
+        <div className="flex justify-center mb-4 text-sm font-semibold">
+          {["phone", "email"].map((m) => (
+            <button
+              key={m}
+              onClick={() => handleModeChange(m as any)}
+              className={`px-3 py-1 mx-1 rounded-full ${
+                mode === m
+                  ? "bg-black text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              }`}
+            >
+              {m === "phone" ? "Phone" : "Email"}
+            </button>
+          ))}
+        </div>
+
+        {/* Google Login */}
+        <button
           onClick={handleGoogleLogin}
           className="w-full py-2 bg-black text-white rounded-full font-semibold hover:bg-gray-900 transition mb-3"
         >
           Continue with Google
-        </button> */}
+        </button>
 
-        {/* PHONE SCREEN */}
-        {step === "phone" ? (
+        {/* Phone Login */}
+        {mode === "phone" && (
           <>
-            <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden shadow-sm mb-3 bg-white">
+            <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden shadow-sm mb-3">
               <div className="px-4 py-2 bg-gray-100 text-gray-700 font-semibold border-r border-gray-300">
                 +91
               </div>
@@ -220,16 +343,13 @@ export default function AuthModal({
                 type="tel"
                 placeholder="Enter phone number"
                 value={phone}
-                onChange={(e) => {
-                  const v = e.target.value.replace(/\D/g, "").slice(0, 10);
-                  setPhone(v);
-                }}
+                onChange={(e) =>
+                  setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
+                }
                 className="flex-1 px-4 py-2 text-gray-800 text-sm focus:outline-none"
               />
             </div>
-
             <ErrorText message={error} />
-
             <GsapButton
               text="Send OTP"
               loadingText="Sending..."
@@ -238,13 +358,13 @@ export default function AuthModal({
               onClick={handlePhoneLogin}
             />
           </>
-        ) : (
+        )}
+
+        {/* OTP Verification */}
+        {mode === "otp" && (
           <>
-            {/* OTP BOXES */}
             <OTPInput otp={otp} setOtp={setOtp} length={6} />
-
             <ErrorText message={error} />
-
             <GsapButton
               text="Verify OTP"
               loadingText="Verifying..."
@@ -252,8 +372,6 @@ export default function AuthModal({
               disabled={otp.length !== 6}
               onClick={handleVerifyOtp}
             />
-
-            {/* RESEND */}
             <div className="text-center mt-4 text-xs text-gray-500">
               Didn’t get OTP?{" "}
               <button
@@ -274,6 +392,34 @@ export default function AuthModal({
                 </p>
               )}
             </div>
+          </>
+        )}
+
+        {/* Email Login */}
+        {mode === "email" && (
+          <>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 border rounded-xl mb-3 text-sm"
+            />
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 border rounded-xl mb-3 text-sm"
+            />
+            <ErrorText message={error} />
+            <GsapButton
+              text="Continue"
+              loadingText="Processing..."
+              loading={loading}
+              disabled={!email || !password}
+              onClick={handleEmailPasswordLogin}
+            />
           </>
         )}
       </div>
@@ -314,15 +460,13 @@ function GsapButton({
     <button
       onClick={onClick}
       disabled={disabled || loading}
-      className={`relative w-full py-3 rounded-xl font-semibold overflow-hidden transition
+      className={`relative w-full py-3 mt-3 rounded-xl font-semibold overflow-hidden transition
       ${
         disabled || loading
           ? "bg-gray-300 text-gray-600"
           : "bg-black text-white hover:bg-neutral-900"
-      }
-    `}
+      }`}
     >
-      {/* GSAP loading layer */}
       <div
         ref={bar}
         className="absolute inset-0 bg-white/20 pointer-events-none"
@@ -332,7 +476,7 @@ function GsapButton({
   );
 }
 
-/* ✅ OTP Input Component */
+/* ✅ OTP Input */
 function OTPInput({
   otp,
   setOtp,
@@ -346,10 +490,8 @@ function OTPInput({
 
   const handleChange = (value: string, index: number) => {
     if (!/^\d*$/.test(value)) return;
-
     const updated = otp.substring(0, index) + value + otp.substring(index + 1);
     setOtp(updated);
-
     if (value && index < length - 1) inputs.current[index + 1]?.focus();
   };
 
@@ -365,7 +507,7 @@ function OTPInput({
         <input
           key={i}
           ref={(el) => {
-            inputs.current[i] = el;
+            if (el) inputs.current[i] = el;
           }}
           type="text"
           maxLength={1}

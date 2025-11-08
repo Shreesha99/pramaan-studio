@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
+import ShopNowButton from "@/components/ShopNowButton";
 
 const heroImages = [
   "/assets/img/Hoodies-with-Zip/model.png",
@@ -342,7 +343,7 @@ export default function Hero() {
       {/* Custom Black Cursor (visible on all sizes; acts as cursor inside section) */}
       <div
         ref={cursorRef}
-        className="hero-cursor fixed z-[70] top-0 left-0 w-20 h-20 w-auto bg-black text-white 
+        className="hero-cursor fixed z-70 top-0 left-0 h-20 w-auto bg-black text-white 
              flex items-center justify-center 
              pointer-events-none opacity-0 scale-0 p-2 rounded-full"
       >
@@ -378,7 +379,7 @@ export default function Hero() {
       </div>
 
       {/* 🔥 Scrolling Strip */}
-      <div className="absolute top-0 left-0 w-full bg-black text-white py-3 sm:py-4 overflow-hidden z-[6] shadow-md">
+      <div className="absolute top-0 left-0 w-full bg-black text-white py-3 sm:py-4 overflow-hidden z-6 shadow-md">
         <div
           ref={tickerRef}
           className="flex whitespace-nowrap font-semibold text-sm sm:text-lg uppercase tracking-widest gap-20 px-10 opacity-90"
@@ -402,8 +403,8 @@ export default function Hero() {
             <span key={i + 4}>{text}</span>
           ))}
         </div>
-        <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-black via-black/70 to-transparent pointer-events-none" />
-        <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-black via-black/70 to-transparent pointer-events-none" />
+        <div className="absolute inset-y-0 left-0 w-20 bg-linear-to-r from-black via-black/70 to-transparent pointer-events-none" />
+        <div className="absolute inset-y-0 right-0 w-20 bg-linear-to-l from-black via-black/70 to-transparent pointer-events-none" />
       </div>
 
       {/* Image strip */}
@@ -431,7 +432,7 @@ export default function Hero() {
       </div>
 
       {/* Typing title (no glow, clean) */}
-      <div className="absolute bottom-20 left-10 sm:left-10 sm:bottom-20 inset-0 flex flex-col justify-center items-center sm:inset-auto sm:block z-[3] pointer-events-none">
+      <div className="absolute bottom-20 left-0 sm:left-10 sm:bottom-30 inset-0 flex flex-col justify-center items-center sm:inset-auto sm:block z-3 pointer-events-none">
         <h1
           className="
       uppercase font-extrabold tracking-tight leading-[0.9] space-y-3 text-center sm:text-left"
@@ -446,6 +447,9 @@ export default function Hero() {
             <span ref={line3Ref}></span>
           </div>
         </h1>
+      </div>
+      <div className="absolute bottom-30 right-25 sm:bottom-30 sm:right-40 z-100 pointer-cursor">
+        <ShopNowButton />
       </div>
     </section>
   );
