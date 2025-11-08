@@ -18,7 +18,8 @@ export default function FloatingCheckoutButton() {
     const shouldShow =
       totalQty > 0 &&
       !pathname.startsWith("/checkout") &&
-      !pathname.startsWith("/order-success");
+      !pathname.startsWith("/order-success") &&
+      !pathname.startsWith("/order-failed");
     setVisible(shouldShow);
   }, [pathname, totalQty]);
 

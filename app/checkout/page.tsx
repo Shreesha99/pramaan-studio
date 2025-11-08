@@ -16,6 +16,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/lib/formatCurrency";
 import GsapButton from "@/components/GsapButton";
+import ErrorText from "@/components/ErrorText";
 
 export default function CheckoutPage() {
   const {
@@ -39,6 +40,7 @@ export default function CheckoutPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isPaying, setIsPaying] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const leftRef = useRef<HTMLDivElement | null>(null);
   const rightRef = useRef<HTMLDivElement | null>(null);
@@ -87,15 +89,20 @@ export default function CheckoutPage() {
     return Object.keys(e).length === 0;
   }
 
-  // Payment logic
+  // 🔹 Track payment failures
+  const [failedAttempts, setFailedAttempts] = useState(0);
+
   async function handlePay() {
     if (cart.length === 0) return setErrors({ general: "Your cart is empty." });
     if (!validate()) return;
 
-    try {
-      setIsPaying(true);
+    // ✅ Immediately show loading animation
+    setIsPaying(true);
 
+    try {
       const amountInPaise = Math.round(total * 100);
+
+      // 🔹 Step 1: Create Razorpay order
       const res = await fetch("/api/razorpay/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -106,7 +113,7 @@ export default function CheckoutPage() {
 
       const { order } = data;
 
-      // Dynamically load Razorpay
+      // 🔹 Step 2: Load Razorpay script if not already loaded
       if (!document.getElementById("razorpay-script")) {
         await new Promise((resolve) => {
           const s = document.createElement("script");
@@ -117,6 +124,7 @@ export default function CheckoutPage() {
         });
       }
 
+      // 🔹 Step 3: Open Razorpay modal
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
@@ -124,9 +132,9 @@ export default function CheckoutPage() {
         name: "PraMaan Studio",
         description: "Order Payment",
         order_id: order.id,
+
         handler: async function (response: any) {
           try {
-            // Verify payment
             const verifyRes = await fetch("/api/razorpay/verify-payment", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -135,7 +143,6 @@ export default function CheckoutPage() {
             const verifyData = await verifyRes.json();
 
             if (verifyData.ok) {
-              // Prepare order data for Firestore
               const orderData = {
                 orderId: verifyData.orderId,
                 paymentId: response.razorpay_payment_id,
@@ -147,22 +154,21 @@ export default function CheckoutPage() {
                 createdAt: new Date().toISOString(),
                 userId: user?.uid || shipping.phone || "guest",
               };
-              // Save to Firestore via API
+
               await fetch("/api/orders/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(orderData),
               });
 
-              // 🧠 Update stock for each product purchased
               await fetch("/api/products/update-stock", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ items: cart }),
               });
 
-              // ✅ Clear cart and redirect
               clearCart();
+
               gsap.to(document.body, {
                 opacity: 0,
                 duration: 0.4,
@@ -178,11 +184,42 @@ export default function CheckoutPage() {
             window.location.href = `/order-failed?reason=verify-error`;
           }
         },
+
         prefill: {
           name: shipping.name,
           contact: shipping.phone,
         },
+
         theme: { color: "#000000" },
+
+        // 🔹 When user closes Razorpay popup
+        modal: {
+          ondismiss: () => {
+            setIsPaying(false);
+
+            setFailedAttempts((prev) => {
+              const next = prev + 1;
+
+              if (next >= 3) {
+                // Too many failed attempts
+                gsap.to(document.body, {
+                  opacity: 0.5,
+                  duration: 0.4,
+                  onComplete: () => {
+                    window.location.href = `/order-failed?reason=too-many-failures`;
+                  },
+                });
+              } else {
+                // Allow retry
+                setErrorMessage(
+                  `Payment was not completed. Attempt ${next}/3.`
+                );
+              }
+
+              return next;
+            });
+          },
+        },
       };
 
       // @ts-ignore
@@ -191,7 +228,6 @@ export default function CheckoutPage() {
     } catch (err: any) {
       console.error(err);
       setErrors({ general: err.message || "Payment failed to start." });
-    } finally {
       setIsPaying(false);
     }
   }
@@ -270,10 +306,11 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {errors.general && (
-                    <p className="text-sm text-red-500 md:col-span-2">
-                      {errors.general}
-                    </p>
+                  {(errorMessage || errors.general) && (
+                    <div className="md:col-span-2">
+                      <ErrorText message={errorMessage || errors.general} />
+                      <FailureProgressBar failedAttempts={failedAttempts} />
+                    </div>
                   )}
 
                   <div className="md:col-span-2 mt-6">
@@ -374,6 +411,30 @@ export default function CheckoutPage() {
 
       <Footer />
     </>
+  );
+}
+
+function FailureProgressBar({ failedAttempts }: { failedAttempts: number }) {
+  const barRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!barRef.current) return;
+    const progress = Math.min((failedAttempts / 3) * 100, 100);
+    gsap.to(barRef.current, {
+      width: `${progress}%`,
+      duration: 0.6,
+      ease: "power2.out",
+    });
+  }, [failedAttempts]);
+
+  return (
+    <div className="mt-2 w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+      <div
+        ref={barRef}
+        className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full"
+        style={{ width: "0%" }}
+      />
+    </div>
   );
 }
 

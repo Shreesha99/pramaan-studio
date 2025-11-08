@@ -86,7 +86,9 @@ export default function FloatingWhatsApp() {
 
   // ✅ Instead of returning early, conditionally hide inside JSX
   const shouldHide =
-    pathname.startsWith("/checkout") || pathname.startsWith("/order-success");
+    pathname.startsWith("/checkout") ||
+    pathname.startsWith("/order-success") ||
+    pathname.startsWith("/order-failed");
 
   if (shouldHide) return null; // ✅ safe return AFTER all hooks
 
