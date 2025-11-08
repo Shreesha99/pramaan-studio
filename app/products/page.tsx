@@ -34,7 +34,7 @@ export default function ProductsPage() {
     [key: string]: string;
   }>({});
 
-  // ✅ Fetch all visible products (not just featured)
+  // ✅ Fetch all visible products
   useEffect(() => {
     const q = query(
       collection(db, "products"),
@@ -60,6 +60,56 @@ export default function ProductsPage() {
 
     return () => unsubscribe();
   }, [showToast]);
+
+  // 🌀 GSAP Auto-scroll product images (with fade & scale)
+  useEffect(() => {
+    const paused: Record<string, boolean> = {};
+    const intervals: Record<string, NodeJS.Timeout> = {};
+
+    const pauseHandler = (e: any) => (paused[e.detail] = true);
+    const resumeHandler = (e: any) => (paused[e.detail] = false);
+
+    window.addEventListener("pause-carousel", pauseHandler);
+    window.addEventListener("resume-carousel", resumeHandler);
+
+    products.forEach((p) => {
+      const color =
+        selectedColor[p.id] ||
+        (p.hasColors ? Object.keys(p.variants || {})[0] : "default");
+
+      const images = p.hasColors
+        ? p.variants?.[color]?.images || []
+        : p.images || [];
+
+      if (images.length > 1) {
+        intervals[p.id] = setInterval(() => {
+          if (paused[p.id]) return; // paused on hover
+
+          setActiveImageIndex((prev) => {
+            const next = ((prev[p.id] ?? 0) + 1) % images.length;
+            const imgEl = document.querySelector(
+              `#img-${p.id}`
+            ) as HTMLElement | null;
+
+            if (imgEl) {
+              gsap.fromTo(
+                imgEl,
+                { opacity: 0, scale: 1.05 },
+                { opacity: 1, scale: 1, duration: 0.8, ease: "power2.out" }
+              );
+            }
+            return { ...prev, [p.id]: next };
+          });
+        }, 3500); // auto-change every 3.5s
+      }
+    });
+
+    return () => {
+      Object.values(intervals).forEach(clearInterval);
+      window.removeEventListener("pause-carousel", pauseHandler);
+      window.removeEventListener("resume-carousel", resumeHandler);
+    };
+  }, [products, selectedColor]);
 
   const getCartItem = (id: string, color?: string) =>
     cart.find((i) => i.id === id && i.color === color);
@@ -125,17 +175,35 @@ export default function ProductsPage() {
     showToast(`${name} removed from cart.`, "info");
   };
 
-  const handlePrevImage = (pid: string, total: number) => {
-    setActiveImageIndex((prev) => ({
-      ...prev,
-      [pid]: ((prev[pid] ?? 0) - 1 + total) % total,
-    }));
-  };
-
   const handleNextImage = (pid: string, total: number) => {
+    const imgEl = document.querySelector(`#img-${pid}`) as HTMLElement | null;
+    if (imgEl) {
+      gsap.fromTo(
+        imgEl,
+        { opacity: 0, x: 40 },
+        { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }
+      );
+    }
+
     setActiveImageIndex((prev) => ({
       ...prev,
       [pid]: ((prev[pid] ?? 0) + 1) % total,
+    }));
+  };
+
+  const handlePrevImage = (pid: string, total: number) => {
+    const imgEl = document.querySelector(`#img-${pid}`) as HTMLElement | null;
+    if (imgEl) {
+      gsap.fromTo(
+        imgEl,
+        { opacity: 0, x: -40 },
+        { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }
+      );
+    }
+
+    setActiveImageIndex((prev) => ({
+      ...prev,
+      [pid]: ((prev[pid] ?? 0) - 1 + total) % total,
     }));
   };
 
@@ -156,10 +224,10 @@ export default function ProductsPage() {
           ) : (
             <div
               className="
-          grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 
-          gap-10 justify-center items-center
-          mx-auto w-full
-        "
+                grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 
+                gap-10 justify-center items-stretch
+                mx-auto w-full
+              "
             >
               {products.map((p) => {
                 const color =
@@ -184,27 +252,38 @@ export default function ProductsPage() {
                 return (
                   <div
                     key={p.id + color}
-                    className="group relative bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 max-w-[400px] w-full mx-auto"
+                    className="group relative bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 max-w-[380px] w-full mx-auto flex flex-col"
+                    style={{
+                      minHeight: "560px",
+                    }}
                   >
-                    {p.featured && (
-                      <div className="absolute top-4 -right-10 bg-black text-white text-xs font-semibold rotate-45 px-14 py-1 shadow-md">
-                        Featured
-                      </div>
-                    )}
-
-                    <Link href={`/product/${p.id}`}>
-                      <div className="relative h-[400px] w-full overflow-hidden">
+                    {/* Product Image */}
+                    <Link
+                      href={`/product/${p.id}`}
+                      className="relative block flex-shrink-0"
+                      onMouseEnter={() => {
+                        const evt = new CustomEvent("pause-carousel", {
+                          detail: p.id,
+                        });
+                        window.dispatchEvent(evt);
+                      }}
+                      onMouseLeave={() => {
+                        const evt = new CustomEvent("resume-carousel", {
+                          detail: p.id,
+                        });
+                        window.dispatchEvent(evt);
+                      }}
+                    >
+                      <div className="relative h-[320px] w-full overflow-hidden">
                         <Image
+                          id={`img-${p.id}`}
+                          key={displayImg}
                           src={displayImg}
                           alt={p.name}
                           width={500}
                           height={500}
-                          className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
+                          className="object-cover w-full h-full"
                         />
-
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition text-white font-semibold text-lg">
-                          View Product
-                        </div>
 
                         {images.length > 1 && (
                           <>
@@ -231,19 +310,37 @@ export default function ProductsPage() {
                       </div>
                     </Link>
 
-                    <div className="p-5 flex flex-col text-center">
-                      <h3 className="font-semibold text-lg">{p.name}</h3>
-                      <p className="text-gray-500 text-sm mt-1">
-                        {formatCurrency(p.price)}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {availableStock > 0
-                          ? `In Stock: ${availableStock}`
-                          : "Out of Stock"}
-                      </p>
+                    {/* Product Info */}
+                    <div className="p-5 flex flex-col text-center flex-1 justify-between">
+                      <div>
+                        <h3 className="font-semibold text-lg">{p.name}</h3>
 
+                        {/* ⭐ Featured Badge under name */}
+                        {p.featured && (
+                          <div className="flex justify-center items-center gap-1 mt-1 text-[13px] text-yellow-600 font-medium">
+                            <span>⭐</span> <span>Featured</span>
+                          </div>
+                        )}
+
+                        <p className="text-gray-500 text-sm mt-2">
+                          {formatCurrency(p.price)}
+                        </p>
+                        <p
+                          className={`text-xs mt-1 ${
+                            availableStock > 0
+                              ? "text-gray-400"
+                              : "text-red-500 font-semibold"
+                          }`}
+                        >
+                          {availableStock > 0
+                            ? `In Stock: ${availableStock}`
+                            : "Out of Stock"}
+                        </p>
+                      </div>
+
+                      {/* Color Options */}
                       {p.hasColors && (
-                        <div className="flex justify-center gap-2 mt-3">
+                        <div className="flex justify-center gap-2 mt-3 flex-wrap">
                           {Object.keys(p.variants || {}).map((clr) => (
                             <button
                               key={clr}
@@ -265,7 +362,8 @@ export default function ProductsPage() {
                         </div>
                       )}
 
-                      <div className="mt-5 min-h-[50px] flex justify-center items-center">
+                      {/* Cart Buttons */}
+                      <div className="mt-5 min-h-[60px] flex justify-center items-center">
                         {availableStock === 0 ? (
                           <span className="text-red-500 font-semibold text-sm">
                             Out of Stock

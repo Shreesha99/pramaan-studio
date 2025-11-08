@@ -47,7 +47,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
     lastToastRef.current = { message, timestamp: now };
 
-    const id = Date.now();
+    const id = Date.now() + Math.floor(Math.random() * 10000);
+
     setToasts((prev) => [...prev, { id, message, type }]);
 
     // 🎉 Confetti trigger if it's the new-user toast

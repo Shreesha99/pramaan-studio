@@ -4,6 +4,8 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import { getStorage } from "firebase/storage";
+import { browserLocalPersistence, setPersistence } from "firebase/auth";
+
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API!,
@@ -18,10 +20,12 @@ const firebaseConfig = {
 // Avoid reinitialization on hot reload
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
+
 // Export Firestore & Auth
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
+setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 // Optional: Enable analytics only in browser
 if (typeof window !== "undefined") {
