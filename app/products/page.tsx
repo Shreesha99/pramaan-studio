@@ -16,7 +16,7 @@ import {
 import { gsap } from "gsap";
 import { formatCurrency } from "@/lib/formatCurrency";
 
-import Header from "@/components/Header";
+import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer";
 
 export default function ProductsPage() {
@@ -260,7 +260,7 @@ export default function ProductsPage() {
                     {/* Product Image */}
                     <Link
                       href={`/product/${p.id}`}
-                      className="relative block flex-shrink-0"
+                      className="relative block shrink-0"
                       onMouseEnter={() => {
                         const evt = new CustomEvent("pause-carousel", {
                           detail: p.id,
@@ -274,7 +274,7 @@ export default function ProductsPage() {
                         window.dispatchEvent(evt);
                       }}
                     >
-                      <div className="relative h-[320px] w-full overflow-hidden">
+                      <div className="relative h-80 w-full overflow-hidden">
                         <Image
                           id={`img-${p.id}`}
                           key={displayImg}

@@ -6,7 +6,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import React from "react";
-import Header from "@/components/Header";
+import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -102,7 +102,7 @@ function FAQItem({ faq }: { faq: { q: string; a: string } }) {
 
   return (
     <>
-      <div className="w-full fixed top-0 left-0 z-[200]">
+      <div className="w-full fixed top-0 left-0 z-200">
         <Header />
       </div>
       <div

@@ -31,7 +31,7 @@ export default function ExploreSection() {
     {
       title: "Bulk Hoodie Production",
       desc: "High-quality winter hoodies delivered in bulk for events.",
-      img: "https://images.unsplash.com/photo-1557800634-95f1c7b3f236?auto=format&fit=crop&w=1000&q=80",
+      img: "/assets/img/round-neck/white.png",
     },
   ];
 
@@ -73,10 +73,6 @@ export default function ExploreSection() {
         // Add 10% extra scroll distance for mobile safety
         end: `+=${Math.max(totalWidth, viewportWidth * 1.5)}`,
         invalidateOnRefresh: true,
-        onRefresh: (self) => {
-          // Mobile browsers sometimes recalc height late
-          if (window.innerWidth < 768) self.scroll(self.start);
-        },
         // markers: true,
       });
 

@@ -37,6 +37,8 @@ interface CartContextType {
   increaseQty: (id: string, color?: string) => void;
   decreaseQty: (id: string, color?: string) => void;
   clearCart: () => void;
+  isCartOpen: boolean; // ✅ add this
+  setIsCartOpen: (open: boolean) => void; // ✅ add this
 }
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -52,6 +54,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const userCartRef = user ? collection(db, "users", user.uid, "cart") : null;
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   // --- Load user cart from Firestore ---
   useEffect(() => {
@@ -166,6 +169,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         increaseQty,
         decreaseQty,
         clearCart,
+        isCartOpen,
+        setIsCartOpen,
       }}
     >
       {children}

@@ -448,7 +448,7 @@ export default function Hero() {
           </div>
         </h1>
       </div>
-      <div className="absolute bottom-30 right-25 sm:bottom-30 sm:right-40 z-100 pointer-cursor">
+      <div className="absolute bottom-30 right-25 sm:bottom-30 sm:right-40 z-30 pointer-cursor">
         <ShopNowButton />
       </div>
     </section>

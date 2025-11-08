@@ -1,22 +1,25 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { gsap } from "gsap";
 import Image from "next/image";
 
 export default function FloatingWhatsApp() {
+  const pathname = usePathname();
+
   const arrowRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const guideGroupRef = useRef<HTMLDivElement>(null);
   const iconRef = useRef<HTMLDivElement>(null);
-
   const chatBubbleRef = useRef<HTMLDivElement>(null);
 
   const [showGuide, setShowGuide] = useState(true);
   const [openChat, setOpenChat] = useState(false);
 
+  // ✅ Always run hooks, even if component will render nothing
   useEffect(() => {
-    // ✅ Smooth disappearance animation after 4s
+    // disappear animation
     const timer = setTimeout(() => {
       if (guideGroupRef.current) {
         gsap.to(guideGroupRef.current, {
@@ -29,23 +32,16 @@ export default function FloatingWhatsApp() {
       }
     }, 4000);
 
-    // ✅ Arrow bounce animation
+    // arrow bounce
     if (arrowRef.current) {
       gsap.fromTo(
         arrowRef.current,
         { y: 0, opacity: 1 },
-        {
-          y: 12,
-          opacity: 1,
-          repeat: -1,
-          yoyo: true,
-          duration: 0.55,
-          ease: "power1.inOut",
-        }
+        { y: 12, repeat: -1, yoyo: true, duration: 0.55, ease: "power1.inOut" }
       );
     }
 
-    // ✅ WhatsApp icon subtle pulse
+    // icon pulse
     if (iconRef.current) {
       gsap.fromTo(
         iconRef.current,
@@ -63,7 +59,6 @@ export default function FloatingWhatsApp() {
     return () => clearTimeout(timer);
   }, []);
 
-  // ✅ Animate chat bubble
   useEffect(() => {
     if (openChat && chatBubbleRef.current) {
       gsap.fromTo(
@@ -74,7 +69,6 @@ export default function FloatingWhatsApp() {
     }
   }, [openChat]);
 
-  // ✅ Click outside to close chat bubble
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (
@@ -90,9 +84,15 @@ export default function FloatingWhatsApp() {
     return () => window.removeEventListener("click", handler);
   }, [openChat]);
 
+  // ✅ Instead of returning early, conditionally hide inside JSX
+  const shouldHide =
+    pathname.startsWith("/checkout") || pathname.startsWith("/order-success");
+
+  if (shouldHide) return null; // ✅ safe return AFTER all hooks
+
   return (
     <>
-      {/* ✅ Guide bubble + arrow above WhatsApp */}
+      {/* Guide bubble */}
       {showGuide && (
         <div
           ref={guideGroupRef}
@@ -118,7 +118,7 @@ export default function FloatingWhatsApp() {
         </div>
       )}
 
-      {/* ✅ Chat Bubble */}
+      {/* Chat bubble */}
       {openChat && (
         <div
           ref={chatBubbleRef}
@@ -139,7 +139,7 @@ export default function FloatingWhatsApp() {
         </div>
       )}
 
-      {/* ✅ WhatsApp Floating Button */}
+      {/* WhatsApp Floating Button */}
       <div
         ref={iconRef}
         className="fixed bottom-6 right-6 z-[9999] cursor-pointer"

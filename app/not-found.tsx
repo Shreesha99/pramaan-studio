@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Header from "@/components/Header";
+import Header from "@/components/Header/Header";
 import { motion } from "framer-motion";
 import Footer from "@/components/Footer";
 
@@ -9,7 +9,7 @@ export default function NotFound() {
   return (
     <section className="w-screen min-h-screen overflow-hidden bg-[#f8f8f8] relative flex flex-col">
       {/* ✅ NAVBAR */}
-      <div className="w-full fixed top-0 left-0 z-[200]">
+      <div className="w-full fixed top-0 left-0 z-200">
         <Header />
       </div>
 

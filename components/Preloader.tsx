@@ -15,15 +15,13 @@ export default function Preloader() {
   useEffect(() => {
     if (done) return;
 
-    let progress = { value: 0 };
-
     const tl = gsap.timeline({
       defaults: { ease: "power3.out" },
       onComplete: () => {
         gsap.to(wrapperRef.current, {
           opacity: 0,
-          y: -60,
-          duration: 1,
+          y: -40,
+          duration: 0.6,
           ease: "power4.inOut",
           onComplete: () => {
             sessionStorage.setItem("pramaan_loaded", "true");
@@ -33,69 +31,46 @@ export default function Preloader() {
       },
     });
 
-    // ✅ Letter bounce reveal
+    // 0.0s → 0.5s — reveal letters quickly
     tl.from(lettersRef.current, {
       opacity: 0,
-      y: 40,
-      stagger: 0.08,
-      duration: 0.8,
-      ease: "back.out(1.4)",
+      y: 30,
+      stagger: 0.04,
+      duration: 0.5,
+      ease: "back.out(1.6)",
     });
 
-    // ✅ Jitter
-    tl.to(
-      lettersRef.current,
-      {
-        y: "+=2",
-        repeat: 6,
-        yoyo: true,
-        duration: 0.08,
-        stagger: 0.03,
-      },
-      "-=0.5"
-    );
-
-    // ✅ Logo pop
+    // 0.4s → 1.0s — logo pop
     tl.from(
       logoRef.current,
       {
-        scale: 0,
+        scale: 0.7,
         opacity: 0,
-        duration: 0.5,
+        duration: 0.4,
         ease: "back.out(2)",
       },
-      "-=0.4"
+      "-=0.3"
     );
 
-    // ✅ Gradient fill wipe
+    // 0.8s → 1.4s — quick fill animation
     tl.fromTo(
       fillRef.current,
       { scaleX: 0 },
       {
         scaleX: 1,
-        duration: 2,
+        duration: 0.6,
         transformOrigin: "left center",
         ease: "power2.inOut",
       },
       "-=0.2"
     );
 
-    // ✅ Percentage counter
-    tl.to(
-      progress,
-      {
-        value: 100,
-        duration: 1.8,
-        ease: "power2.out",
-        onUpdate: () => {
-          if (percentRef.current) {
-            percentRef.current.innerText = `${Math.floor(progress.value)}%`;
-          }
-        },
-      },
-      "-=2"
-    );
+    // 1.0s — instantly update percent to 100%
+    tl.call(() => {
+      if (percentRef.current) percentRef.current.innerText = "100%";
+    });
 
+    // 1.4s → 2.0s — fade-out handled in onComplete
     return () => {
       tl.kill();
     };
@@ -108,7 +83,7 @@ export default function Preloader() {
   return (
     <div
       ref={wrapperRef}
-      className="fixed inset-0 z-99999 flex flex-col items-center justify-center bg-white"
+      className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-white"
     >
       {/* ✅ Logo */}
       <img
@@ -136,13 +111,19 @@ export default function Preloader() {
         ))}
       </div>
 
-      {/* ✅ Percentage */}
+      {/* ✅ Percentage (instant) */}
       <div
         ref={percentRef}
         className="mt-6 text-sm font-semibold text-gray-600"
       >
         0%
       </div>
+
+      {/* ✅ Gradient fill bar */}
+      <div
+        ref={fillRef}
+        className="absolute bottom-0 left-0 h-[4px] w-full bg-gradient-to-r from-black to-gray-400 scale-x-0"
+      />
     </div>
   );
 }

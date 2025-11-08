@@ -234,11 +234,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const openAuthModal = () => setShowAuthModal(true);
   const closeAuthModal = () => setShowAuthModal(false);
 
-  // debug logs (optional)
-  useEffect(() => {
-    console.log("[Auth] user changed ->", user);
-  }, [user]);
-
   return (
     <AuthContext.Provider
       value={{

@@ -267,7 +267,7 @@ export default function ProductCustomizer({
 
       {/* Add Text Panel */}
       {addTextOpen && (
-        <div className="absolute top-14 left-3 z-[10000] bg-white p-4 rounded-xl border shadow-lg w-56 space-y-3 text-sm">
+        <div className="absolute top-14 left-3 z-10000 bg-white p-4 rounded-xl border shadow-lg w-56 space-y-3 text-sm">
           <input
             value={newText}
             onChange={(e) => setNewText(e.target.value)}
@@ -318,7 +318,7 @@ export default function ProductCustomizer({
       )}
 
       {/* Draggable / Resizable Items Layer */}
-      <div className="absolute inset-0 z-[9000]">
+      <div className="absolute inset-0 z-9000">
         {items.map((item) =>
           isImage(item) ? (
             <div

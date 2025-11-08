@@ -236,7 +236,6 @@ export default function AuthModal({
         try {
           // 2️⃣ Check if user exists in Firebase
           const methods = await fetchSignInMethodsForEmail(auth, email);
-          console.log("Sign-in methods for", email, methods);
 
           if (methods.length > 0) {
             // Existing user, wrong password
