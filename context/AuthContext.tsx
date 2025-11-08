@@ -16,6 +16,7 @@ import {
   setPersistence,
   browserLocalPersistence,
   User,
+  UserCredential,
 } from "firebase/auth";
 import { useToast } from "./ToastContext";
 
@@ -25,7 +26,7 @@ interface AuthContextType {
   showAuthModal: boolean;
   openAuthModal: () => void;
   closeAuthModal: () => void;
-  login: () => Promise<void>;
+  login: () => Promise<UserCredential>;
   logout: () => Promise<void>;
 }
 
@@ -184,6 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // result.user will be handled by onAuthStateChanged listener,
       // but we also proactively broadcast a small message for speed
       const small = safeUserObj(result.user);
+
       try {
         const bc = new BroadcastChannel("pramaan_auth");
         bc.postMessage({ type: "LOGIN", user: small });
@@ -195,7 +197,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("auth-sync", Date.now().toString());
         } catch {}
       }
-      // onAuthStateChanged will setUser and writeLocalAuth
+
+      // ✅ return result so AuthModal can check if new user
+      return result;
     } catch (err: any) {
       console.error("[Auth] login error:", err);
       showToast(

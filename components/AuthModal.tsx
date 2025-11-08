@@ -196,10 +196,24 @@ export default function AuthModal({
   const handleGoogleLogin = async () => {
     setError("");
     try {
-      await login();
-      showToast("Welcome back!", "success");
+      const userCred = await login();
+
+      // 🧠 Detect first-time Google user
+      if (
+        userCred?.user?.metadata?.creationTime ===
+        userCred?.user?.metadata?.lastSignInTime
+      ) {
+        showToast(
+          "Welcome to PraMaan! Account created successfully.",
+          "success"
+        );
+      } else {
+        showToast("Welcome back!", "success");
+      }
+
       onClose();
-    } catch {
+    } catch (err: any) {
+      console.error("Google login failed:", err);
       setError("Google login failed.");
     }
   };
@@ -221,7 +235,6 @@ export default function AuthModal({
     setLoading(true);
 
     try {
-      // 1️⃣ Try to sign in
       await signInWithEmailAndPassword(auth, email, password);
       showToast("Welcome back!", "success");
       onClose();
@@ -279,7 +292,6 @@ export default function AuthModal({
         return;
       }
 
-      // Generic fallback
       setError("Login failed. Please try again later.");
     } finally {
       setLoading(false);
@@ -307,7 +319,7 @@ export default function AuthModal({
         <h2 className="text-center text-2xl font-semibold mb-5">Sign In</h2>
 
         {/* Tab Switcher */}
-        <div className="flex justify-center mb-4 text-sm font-semibold">
+        {/* <div className="flex justify-center mb-4 text-sm font-semibold">
           {["phone", "email"].map((m) => (
             <button
               key={m}
@@ -321,7 +333,7 @@ export default function AuthModal({
               {m === "phone" ? "Phone" : "Email"}
             </button>
           ))}
-        </div>
+        </div> */}
 
         {/* Google Login */}
         <button
@@ -334,7 +346,8 @@ export default function AuthModal({
         {/* Phone Login */}
         {mode === "phone" && (
           <>
-            <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden shadow-sm mb-3">
+            {/* <ErrorText message="Phone login is currently facing downtime please using google or email login. We regret the inconvenience" /> */}
+            {/* <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden shadow-sm mb-3">
               <div className="px-4 py-2 bg-gray-100 text-gray-700 font-semibold border-r border-gray-300">
                 +91
               </div>
@@ -355,7 +368,7 @@ export default function AuthModal({
               loading={loading}
               disabled={phone.length !== 10}
               onClick={handlePhoneLogin}
-            />
+            /> */}
           </>
         )}
 
@@ -395,7 +408,7 @@ export default function AuthModal({
         )}
 
         {/* Email Login */}
-        {mode === "email" && (
+        {/* {mode === "email" && (
           <>
             <input
               type="email"
@@ -420,7 +433,7 @@ export default function AuthModal({
               onClick={handleEmailPasswordLogin}
             />
           </>
-        )}
+        )} */}
       </div>
     </div>
   );
