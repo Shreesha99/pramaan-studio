@@ -39,7 +39,7 @@ export default function SearchDrawer({
   if (!searchOpen) return null;
 
   // ✅ Navigate to products page and close drawer
-  const handleResultClick = () => {
+  const handleResultClick = (product: any) => {
     setSearchOpen(false);
     setSearchQuery("");
     router.push("/products");
