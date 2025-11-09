@@ -12,9 +12,7 @@ export default function ShippingPage() {
 
       <h2 className="text-2xl font-semibold mt-8 mb-3">Delivery Time</h2>
       <ul className="ml-6 list-disc text-gray-700 leading-relaxed">
-        <li>Standard delivery: 3–7 business days</li>
-        <li>Metro cities: 2–4 days</li>
-        <li>Remote areas: 5–10 days</li>
+        <li>Standard delivery: 8–14 business days</li>
       </ul>
 
       <h2 className="text-2xl font-semibold mt-8 mb-3">Order Tracking</h2>

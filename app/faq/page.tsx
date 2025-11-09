@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
-import React from "react";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer";
 
 gsap.registerPlugin(ScrollTrigger);
 
-// FAQ DATA
+// ✅ FAQ DATA
 const faqs = [
   {
     q: "What types of custom apparel do you offer?",
@@ -46,7 +45,7 @@ const faqs = [
 export default function FAQPage() {
   const titleRef = useRef(null);
 
-  // ✅ GSAP page entrance animation
+  // ✅ GSAP animations for entrance
   useEffect(() => {
     if (!titleRef.current) return;
 
@@ -61,7 +60,7 @@ export default function FAQPage() {
       gsap.from(el, {
         opacity: 0,
         y: 30,
-        duration: 0.7,
+        duration: 0.6,
         delay: i * 0.1,
         ease: "power2.out",
         scrollTrigger: {
@@ -74,7 +73,12 @@ export default function FAQPage() {
 
   return (
     <main className="min-h-screen bg-white pb-20">
-      {/* Header Section */}
+      {/* Header */}
+      <div className="fixed top-0 left-0 z-[200] w-full">
+        <Header />
+      </div>
+
+      {/* Hero Section */}
       <section className="pt-28 pb-16 text-center">
         <h1
           ref={titleRef}
@@ -93,49 +97,49 @@ export default function FAQPage() {
           <FAQItem key={i} faq={item} />
         ))}
       </section>
+
+      {/* Footer */}
+      <Footer />
     </main>
   );
 }
 
 function FAQItem({ faq }: { faq: { q: string; a: string } }) {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
 
   return (
-    <>
-      <div className="w-full fixed top-0 left-0 z-200">
-        <Header />
-      </div>
-      <div
-        className="faq-card border-b border-gray-200 py-5 cursor-pointer group"
-        onClick={() => setOpen(!open)}
-      >
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg sm:text-xl font-semibold group-hover:text-black transition">
-            {faq.q}
-          </h3>
+    <div
+      className="faq-card border-b border-gray-200 py-5 cursor-pointer group transition-all duration-200"
+      onClick={() => setOpen(!open)}
+    >
+      <div className="flex justify-between items-center w-full">
+        <h3 className="text-lg sm:text-xl font-semibold text-gray-800 group-hover:text-black transition-colors duration-150 max-w-[90%]">
+          {faq.q}
+        </h3>
 
+        <motion.div
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          <ChevronDownIcon className="w-5 h-5 text-gray-600 flex-shrink-0" />
+        </motion.div>
+      </div>
+
+      <AnimatePresence>
+        {open && (
           <motion.div
-            animate={{ rotate: open ? 180 : 0 }}
-            transition={{ duration: 0.25 }}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden"
           >
-            <ChevronDownIcon className="w-5 h-5 text-gray-600" />
-          </motion.div>
-        </div>
-
-        <AnimatePresence>
-          {open && (
-            <motion.p
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="text-gray-600 text-sm sm:text-base mt-3 leading-relaxed pr-6"
-            >
+            <p className="text-gray-600 text-sm sm:text-base mt-3 leading-relaxed max-w-[700px]">
               {faq.a}
-            </motion.p>
-          )}
-        </AnimatePresence>
-      </div>
-    </>
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

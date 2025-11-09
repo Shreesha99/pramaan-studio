@@ -157,7 +157,7 @@ export default function Footer() {
               </a>
             </li>
             <li>
-              <a href="/payments" className="hover:text-black">
+              <a href="/payments-faq" className="hover:text-black">
                 Payments
               </a>
             </li>
