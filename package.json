@@ -11,10 +11,12 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@studio-freight/lenis": "^1.0.42",
+    "dom-to-image-more": "^3.7.2",
     "firebase": "^12.5.0",
     "framer-motion": "^12.23.24",
     "fuse.js": "^7.1.0",
     "gsap": "^3.13.0",
+    "html-to-image": "^1.11.13",
     "lineicons-react": "^2.0.0",
     "lottie-react": "^2.4.1",
     "next": "16.0.1",

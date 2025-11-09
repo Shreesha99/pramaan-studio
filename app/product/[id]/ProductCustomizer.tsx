@@ -3,6 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { PhotoIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  getStorage,
+  ref,
+  uploadString,
+  getDownloadURL,
+} from "firebase/storage";
+import { getAuth } from "firebase/auth";
+import * as domtoimage from "dom-to-image-more";
 
 type ItemImage = {
   id: string;
@@ -224,6 +232,58 @@ export default function ProductCustomizer({
     setActiveId(null);
   };
 
+  // 🔽 EXPORT MERGED IMAGE FUNCTION
+  const exportMergedImage = async (): Promise<string | null> => {
+    const container = containerRef.current;
+    if (!container) return null;
+
+    try {
+      const domtoimage =
+        (await import("dom-to-image-more")).default ??
+        (await import("dom-to-image-more"));
+
+      const clone = container.cloneNode(true) as HTMLElement;
+      clone.style.position = "absolute";
+      clone.style.left = "-9999px";
+      document.body.appendChild(clone);
+
+      clone.querySelectorAll("img").forEach((img) => {
+        img.setAttribute("crossOrigin", "anonymous");
+
+        // 🩹 Fix Firebase URLs — remove query params & use appspot.com
+        if (img.src.includes("firebasestorage")) {
+          try {
+            const cleanUrl = img.src.split("?")[0]; // remove ?alt=media&token=...
+            img.src = cleanUrl.replace("firebasestorage.app", "appspot.com");
+          } catch (err) {
+            console.warn("Error cleaning image URL:", err);
+          }
+        }
+      });
+
+      // 🚫 Turn off cacheBust (causes random param)
+      const dataUrl = await domtoimage.toPng(clone, {
+        quality: 1,
+        bgcolor: "#ffffff",
+        cacheBust: false, // ✅ FIXED
+        pixelRatio: 2,
+      });
+
+      document.body.removeChild(clone);
+      return dataUrl;
+    } catch (err) {
+      console.error("Failed to export customized image:", err);
+      return null;
+    }
+  };
+
+  // 🔽 Allow parent to access export function
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).exportCustomizedImage = exportMergedImage;
+    }
+  }, []);
+
   // -------------------------
   // RENDER
   // -------------------------
@@ -253,7 +313,12 @@ export default function ProductCustomizer({
           <PlusIcon className="w-4 h-4" />
           Add Text
         </button>
-
+        <button
+          onClick={exportMergedImage}
+          className="bg-green-600 text-white px-3 py-1.5 rounded-full text-xs shadow"
+        >
+          💾 Save Design
+        </button>
         {activeId && (
           <button
             onClick={deleteActive}

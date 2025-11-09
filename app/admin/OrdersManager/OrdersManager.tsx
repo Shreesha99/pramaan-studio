@@ -141,23 +141,36 @@ export default function OrdersManager() {
             </p>
 
             {/* 🧩 Items */}
-            <div className="border-t mt-3 pt-3 space-y-2">
+            <div className="border-t mt-3 pt-3 space-y-3">
               {order.items?.map((item, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <div className="flex items-center gap-2">
-                    <img
-                      src={item.img}
-                      alt={item.name}
-                      className="w-10 h-10 rounded object-cover"
-                    />
-                    <span>
-                      {item.name} — {item.color} x{item.qty}
-                    </span>
+                <div key={i} className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={item.img}
+                        alt={item.name}
+                        className="w-10 h-10 rounded object-cover"
+                      />
+                      <span>
+                        {item.name} — {item.color} ×{item.qty}
+                      </span>
+                    </div>
+                    <span>₹{item.price}</span>
                   </div>
-                  <span>₹{item.price}</span>
+
+                  {/* 🎨 Show Custom Design if available */}
+                  {item.customizedImage && (
+                    <div className="ml-10">
+                      <p className="text-xs text-gray-500 mb-1">
+                        Customized Design:
+                      </p>
+                      <img
+                        src={item.customizedImage}
+                        alt="Customized Design"
+                        className="w-32 h-32 object-contain border rounded shadow-sm"
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

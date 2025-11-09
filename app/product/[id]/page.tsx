@@ -78,7 +78,7 @@ export default function ProductPage() {
   const currentQtyInCart = existingCartItem?.qty || 0;
 
   // ✅ FIXED handleAdd
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!user) {
       showToast("Please sign in first.", "info");
       openAuthModal();
@@ -90,11 +90,13 @@ export default function ProductPage() {
       return;
     }
 
-    // ✅ BLOCK adding beyond stock (NO BUTTON CHANGE)
     if (currentQtyInCart >= stock) {
       showToast("You already added the maximum available stock.", "info");
       return;
     }
+
+    // ✅ Check for saved customization
+    let customizedImage = localStorage.getItem("latestCustomization");
 
     addToCart({
       id: product.id,
@@ -104,9 +106,13 @@ export default function ProductPage() {
       qty: 1,
       color: product.hasColors ? selectedColor : "default",
       stock,
+      ...(customizedImage ? { customizedImage } : {}),
     });
 
-    showToast("Added to cart.", "success");
+    showToast(
+      customizedImage ? "Customized product added to cart!" : "Added to cart.",
+      "success"
+    );
   };
 
   return (
