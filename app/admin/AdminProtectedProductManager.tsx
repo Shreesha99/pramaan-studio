@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import ProductManager from "@/app/admin/ProductManager/ProductManager"; // ✅ not page.tsx
+import ProductManager from "@/app/admin/ProductManager/ProductManager";
 import { useToast } from "@/context/ToastContext";
 import GsapButton from "@/components/GsapButton";
 import ErrorText from "@/components/ErrorText";

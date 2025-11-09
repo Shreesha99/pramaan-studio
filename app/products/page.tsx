@@ -19,6 +19,7 @@ import { gsap } from "gsap";
 import { formatCurrency } from "@/lib/formatCurrency";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer";
+import CustomCursor from "@/components/CustomCursor";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -343,19 +344,52 @@ export default function ProductsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 justify-center items-stretch mx-auto w-full">
               {filteredProducts.map((p) => {
-                const color =
-                  selectedColor[p.id] ||
-                  (p.hasColors ? Object.keys(p.variants || {})[0] : "default");
-                const variant = p.variants?.[color];
-                const availableStock = p.hasColors
-                  ? variant?.stock ?? 0
-                  : p.stock ?? 0;
-                const images =
-                  Array.isArray(variant?.images) && variant.images.length > 0
-                    ? variant.images
-                    : Array.isArray(p.images)
-                    ? p.images
-                    : [];
+                // ✅ Smart default + dynamic stock behavior
+                const hasDefaultImage =
+                  Array.isArray(p.images) && p.images.length > 0;
+                const hasColors =
+                  p.hasColors &&
+                  p.variants &&
+                  Object.keys(p.variants).length > 0;
+
+                let color = selectedColor[p.id] || "default";
+                let variant = null;
+                let images: string[] = [];
+                let availableStock = p.stock ?? 0;
+
+                // ✅ If product has color variants
+                if (hasColors) {
+                  const colorKeys = Object.keys(p.variants || {});
+
+                  if (hasDefaultImage) {
+                    // Product has a main bundle/default image
+                    if (!selectedColor[p.id]) {
+                      // No color selected → show default image + total stock
+                      images = p.images;
+                      availableStock = colorKeys.reduce(
+                        (sum, clr) => sum + (p.variants?.[clr]?.stock || 0),
+                        0
+                      );
+                    } else {
+                      // Color selected → show that color’s images + color stock
+                      color = selectedColor[p.id];
+                      variant = p.variants[color];
+                      images = variant?.images || [];
+                      availableStock = variant?.stock ?? 0;
+                    }
+                  } else {
+                    // No default image → pick first color or selected color
+                    const defaultClr = selectedColor[p.id] || colorKeys[0];
+                    color = defaultClr;
+                    variant = p.variants[defaultClr];
+                    images = variant?.images || [];
+                    availableStock = variant?.stock ?? 0;
+                  }
+                } else {
+                  // No colors → fallback
+                  images = Array.isArray(p.images) ? p.images : [];
+                  availableStock = p.stock ?? 0;
+                }
 
                 const activeIndex = activeImageIndex[p.id] ?? 0;
                 const displayImg =
@@ -383,7 +417,15 @@ export default function ProductsPage() {
                         )
                       }
                     >
-                      <div className="relative h-80 w-full overflow-hidden">
+                      <div
+                        className="relative h-80 w-full overflow-hidden cursor-none" // hides default cursor
+                        onMouseEnter={() =>
+                          document.body.classList.add("cursor-view")
+                        }
+                        onMouseLeave={() =>
+                          document.body.classList.remove("cursor-view")
+                        }
+                      >
                         <Image
                           id={`img-${p.id}`}
                           key={displayImg}
@@ -401,7 +443,7 @@ export default function ProductsPage() {
                                 e.preventDefault();
                                 handlePrevImage(p.id, images.length);
                               }}
-                              className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition"
+                              className="cursor-pointer no-cursor-zone absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition"
                             >
                               <ChevronLeftIcon className="w-5 h-5" />
                             </button>
@@ -410,7 +452,7 @@ export default function ProductsPage() {
                                 e.preventDefault();
                                 handleNextImage(p.id, images.length);
                               }}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition"
+                              className="cursor-pointer no-cursor-zone absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition"
                             >
                               <ChevronRightIcon className="w-5 h-5" />
                             </button>
@@ -522,6 +564,7 @@ export default function ProductsPage() {
       </main>
 
       <Footer />
+      <CustomCursor />
     </>
   );
 }

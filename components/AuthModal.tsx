@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
@@ -14,6 +14,7 @@ import { gsap } from "gsap";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import ErrorText from "@/components/ErrorText";
 import { useToast } from "@/context/ToastContext";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 export default function AuthModal({
   isOpen,
@@ -193,10 +194,34 @@ export default function AuthModal({
   };
 
   /* ✅ Google Login */
+  /* ✅ Google Login */
   const handleGoogleLogin = async () => {
     setError("");
     try {
-      const userCred = await login();
+      const userCred = await login(); // your useAuth() login() uses signInWithPopup internally
+      const user = userCred?.user;
+
+      if (!user) throw new Error("No user returned from Google login");
+
+      // ✅ Check Firestore for existing user doc
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        // 🧠 Create Firestore document for new user
+        await setDoc(userRef, {
+          name: user.displayName || "Unnamed User",
+          email: user.email || "",
+          photoURL: user.photoURL || "",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        // 🕓 Update last login timestamp
+        await updateDoc(userRef, {
+          updatedAt: new Date().toISOString(),
+        });
+      }
 
       // 🧠 Detect first-time Google user
       if (

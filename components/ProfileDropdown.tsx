@@ -178,7 +178,17 @@ export default function ProfileDropdown({
         </button>
       </form>
 
-      <div className="mt-4 border-t border-gray-200 pt-3">
+      <div className="mt-5 border-t border-gray-200 pt-4 flex flex-col gap-2">
+        {/* ✅ View Orders Link */}
+        <a
+          href="/orders"
+          onClick={onClose}
+          className="w-full text-center border border-gray-300 rounded-full py-2 text-sm font-medium hover:bg-black hover:text-white transition-all"
+        >
+          🛍️ View My Orders
+        </a>
+
+        {/* 🚪 Logout Button */}
         <button
           onClick={async () => {
             await logout();

@@ -299,10 +299,10 @@ export default function CheckoutPage() {
                   <div className="md:col-span-2 mt-3 flex items-center justify-between text-sm text-gray-600">
                     <div className="flex items-center gap-2">
                       <TruckIcon className="w-5 h-5" />
-                      <span>Standard delivery — 2–5 business days</span>
+                      <span>Standard delivery — 8–14 business days</span>
                     </div>
                     <div>
-                      Est. delivery: <strong>3–4 days</strong>
+                      Est. delivery: <strong>8–14 days</strong>
                     </div>
                   </div>
 
