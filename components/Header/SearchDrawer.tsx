@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { gsap } from "gsap";
 import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
@@ -13,7 +14,9 @@ export default function SearchDrawer({
 }: any) {
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTlRef = useRef<gsap.core.Timeline | null>(null);
+  const router = useRouter();
 
+  // ✅ GSAP animation for drawer entrance/exit
   useEffect(() => {
     if (!searchRef.current) return;
 
@@ -35,11 +38,19 @@ export default function SearchDrawer({
 
   if (!searchOpen) return null;
 
+  // ✅ Navigate to products page and close drawer
+  const handleResultClick = () => {
+    setSearchOpen(false);
+    setSearchQuery("");
+    router.push("/products");
+  };
+
   return (
     <div
       ref={searchRef}
       className="fixed top-[15%] left-1/2 -translate-x-1/2 w-[90%] sm:w-[600px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-120 p-5"
     >
+      {/* 🔍 Input Header */}
       <div className="flex items-center gap-3">
         <MagnifyingGlassIcon className="w-6 h-6 text-gray-600" />
         <input
@@ -55,6 +66,7 @@ export default function SearchDrawer({
         </button>
       </div>
 
+      {/* 🧩 Search Results */}
       {searchQuery && (
         <div className="mt-4 max-h-[250px] overflow-y-auto space-y-2">
           {searchResults.length === 0 ? (
@@ -70,9 +82,11 @@ export default function SearchDrawer({
                 p.hasColors && variantColors.length
                   ? p.variants[variantColors[0]].images?.[0]
                   : p.images?.[0];
+
               return (
                 <div
                   key={p.id}
+                  onClick={() => handleResultClick(p)}
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition"
                 >
                   {img ? (

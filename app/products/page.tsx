@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useCart } from "@/context/CartContext";
@@ -12,10 +12,11 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   TrashIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
 } from "@heroicons/react/24/outline";
 import { gsap } from "gsap";
 import { formatCurrency } from "@/lib/formatCurrency";
-
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer";
 
@@ -30,17 +31,21 @@ export default function ProductsPage() {
   const [activeImageIndex, setActiveImageIndex] = useState<{
     [key: string]: number;
   }>({});
-  const [selectedColor, setSelectedColor] = useState<{
-    [key: string]: string;
-  }>({});
+  const [selectedColor, setSelectedColor] = useState<{ [key: string]: string }>(
+    {}
+  );
 
-  // ✅ Fetch all visible products
+  // 🧭 NEW STATES
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedFilterColor, setSelectedFilterColor] = useState("All");
+
+  // ✅ Fetch visible products
   useEffect(() => {
     const q = query(
       collection(db, "products"),
       where("showProduct", "==", true)
     );
-
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
@@ -57,11 +62,10 @@ export default function ProductsPage() {
         setLoading(false);
       }
     );
-
     return () => unsubscribe();
   }, [showToast]);
 
-  // 🌀 GSAP Auto-scroll product images (with fade & scale)
+  // 🌀 Carousel (unchanged)
   useEffect(() => {
     const paused: Record<string, boolean> = {};
     const intervals: Record<string, NodeJS.Timeout> = {};
@@ -83,14 +87,12 @@ export default function ProductsPage() {
 
       if (images.length > 1) {
         intervals[p.id] = setInterval(() => {
-          if (paused[p.id]) return; // paused on hover
-
+          if (paused[p.id]) return;
           setActiveImageIndex((prev) => {
             const next = ((prev[p.id] ?? 0) + 1) % images.length;
             const imgEl = document.querySelector(
               `#img-${p.id}`
             ) as HTMLElement | null;
-
             if (imgEl) {
               gsap.fromTo(
                 imgEl,
@@ -100,7 +102,7 @@ export default function ProductsPage() {
             }
             return { ...prev, [p.id]: next };
           });
-        }, 3500); // auto-change every 3.5s
+        }, 3500);
       }
     });
 
@@ -111,9 +113,51 @@ export default function ProductsPage() {
     };
   }, [products, selectedColor]);
 
+  // 🧠 Filtered Products (computed with search + category + color)
+  const filteredProducts = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+
+    return products.filter((p) => {
+      const matchesSearch =
+        p.name.toLowerCase().includes(term) ||
+        p.category?.toLowerCase().includes(term);
+
+      const matchesCategory =
+        selectedCategory === "All" || p.category === selectedCategory;
+
+      const matchesColor =
+        selectedFilterColor === "All" ||
+        (p.hasColors &&
+          Object.keys(p.variants || {}).some(
+            (clr) => clr.toLowerCase() === selectedFilterColor.toLowerCase()
+          ));
+
+      return matchesSearch && matchesCategory && matchesColor;
+    });
+  }, [products, searchTerm, selectedCategory, selectedFilterColor]);
+
+  // 🧩 Extract category/color lists for filters
+  const categories = useMemo(() => {
+    const unique = Array.from(
+      new Set(products.map((p) => p.category).filter(Boolean))
+    );
+    return ["All", ...unique];
+  }, [products]);
+
+  const colors = useMemo(() => {
+    const clrSet = new Set<string>();
+    products.forEach((p) => {
+      if (p.hasColors) {
+        Object.keys(p.variants || {}).forEach((c) => clrSet.add(c));
+      }
+    });
+    return ["All", ...Array.from(clrSet)];
+  }, [products]);
+
   const getCartItem = (id: string, color?: string) =>
     cart.find((i) => i.id === id && i.color === color);
 
+  // 🛒 Add to Cart logic (unchanged)
   const handleAddToCart = (p: any) => {
     const hasColors = p.hasColors;
     const selectedClr = selectedColor[p.id];
@@ -151,7 +195,6 @@ export default function ProductsPage() {
         );
         return;
       }
-
       increaseQty(p.id, color);
       showToast("Quantity updated.", "success");
       return;
@@ -166,7 +209,6 @@ export default function ProductsPage() {
       stock: availableStock,
       img: image,
     });
-
     showToast(`${p.name} added to cart!`, "success");
   };
 
@@ -175,6 +217,7 @@ export default function ProductsPage() {
     showToast(`${name} removed from cart.`, "info");
   };
 
+  // 🖼️ Navigation between images
   const handleNextImage = (pid: string, total: number) => {
     const imgEl = document.querySelector(`#img-${pid}`) as HTMLElement | null;
     if (imgEl) {
@@ -184,7 +227,6 @@ export default function ProductsPage() {
         { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }
       );
     }
-
     setActiveImageIndex((prev) => ({
       ...prev,
       [pid]: ((prev[pid] ?? 0) + 1) % total,
@@ -200,36 +242,107 @@ export default function ProductsPage() {
         { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" }
       );
     }
-
     setActiveImageIndex((prev) => ({
       ...prev,
       [pid]: ((prev[pid] ?? 0) - 1 + total) % total,
     }));
   };
 
+  // 🧭 Animate result refresh
+  useEffect(() => {
+    gsap.fromTo(
+      ".product-card",
+      { opacity: 0, y: 30 },
+      { opacity: 1, y: 0, stagger: 0.05, duration: 0.4, ease: "power2.out" }
+    );
+  }, [filteredProducts]);
+
   return (
     <>
       <Header />
 
-      <main className="relative flex flex-col items-center justify-center w-full min-h-screen px-6 py-20 bg-white">
+      <main className="flex flex-col items-center justify-center w-full min-h-screen px-2 py-20 bg-white">
         <div className="w-full max-w-[1300px] mx-auto">
           <h1 className="text-4xl font-bold uppercase mb-10 text-center tracking-tight">
             All Products
           </h1>
 
+          {/* 🧭 Search + Filters + Clear */}
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-10 bg-gray-50 p-4 rounded-lg border relative">
+            {/* Search Bar */}
+            <div className="flex items-center gap-2 w-full md:w-1/2">
+              <MagnifyingGlassIcon className="w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-transparent outline-none px-2 py-1 text-sm"
+              />
+            </div>
+
+            {/* Filters */}
+            <div className="flex gap-3 flex-wrap justify-center md:justify-end items-center">
+              <div className="flex items-center gap-2">
+                <FunnelIcon className="w-4 h-4 text-gray-400" />
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="border rounded-md px-2 py-1 text-sm"
+                >
+                  {categories.map((cat) => (
+                    <option key={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 text-sm">Color</span>
+                <select
+                  value={selectedFilterColor}
+                  onChange={(e) => setSelectedFilterColor(e.target.value)}
+                  className="border rounded-md px-2 py-1 text-sm"
+                >
+                  {colors.map((clr) => (
+                    <option key={clr}>{clr}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 🧹 Clear Filters Button */}
+              {(searchTerm ||
+                selectedCategory !== "All" ||
+                selectedFilterColor !== "All") && (
+                <button
+                  onClick={() => {
+                    gsap.fromTo(
+                      "#clear-filters-btn",
+                      { opacity: 0, y: -5 },
+                      { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }
+                    );
+                    setSearchTerm("");
+                    setSelectedCategory("All");
+                    setSelectedFilterColor("All");
+                  }}
+                  id="clear-filters-btn"
+                  className="text-sm text-gray-600 border border-gray-300 rounded-full px-3 py-1 hover:bg-gray-100 transition"
+                >
+                  Clear Filters ✕
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 🧱 Products */}
           {loading ? (
             <p className="text-center text-gray-500">Loading products...</p>
-          ) : products.length === 0 ? (
-            <p className="text-center text-gray-400">No products available.</p>
+          ) : filteredProducts.length === 0 ? (
+            <p className="text-center text-gray-400">
+              No matching products found.
+            </p>
           ) : (
-            <div
-              className="
-                grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 
-                gap-10 justify-center items-stretch
-                mx-auto w-full
-              "
-            >
-              {products.map((p) => {
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 justify-center items-stretch mx-auto w-full">
+              {filteredProducts.map((p) => {
                 const color =
                   selectedColor[p.id] ||
                   (p.hasColors ? Object.keys(p.variants || {})[0] : "default");
@@ -252,27 +365,23 @@ export default function ProductsPage() {
                 return (
                   <div
                     key={p.id + color}
-                    className="group relative bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 max-w-[380px] w-full mx-auto flex flex-col"
-                    style={{
-                      minHeight: "560px",
-                    }}
+                    className="product-card group relative bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 max-w-[380px] w-full mx-auto flex flex-col"
+                    style={{ minHeight: "560px" }}
                   >
                     {/* Product Image */}
                     <Link
                       href={`/product/${p.id}`}
                       className="relative block shrink-0"
-                      onMouseEnter={() => {
-                        const evt = new CustomEvent("pause-carousel", {
-                          detail: p.id,
-                        });
-                        window.dispatchEvent(evt);
-                      }}
-                      onMouseLeave={() => {
-                        const evt = new CustomEvent("resume-carousel", {
-                          detail: p.id,
-                        });
-                        window.dispatchEvent(evt);
-                      }}
+                      onMouseEnter={() =>
+                        window.dispatchEvent(
+                          new CustomEvent("pause-carousel", { detail: p.id })
+                        )
+                      }
+                      onMouseLeave={() =>
+                        window.dispatchEvent(
+                          new CustomEvent("resume-carousel", { detail: p.id })
+                        )
+                      }
                     >
                       <div className="relative h-80 w-full overflow-hidden">
                         <Image
@@ -310,18 +419,15 @@ export default function ProductsPage() {
                       </div>
                     </Link>
 
-                    {/* Product Info */}
+                    {/* Product Info (unchanged) */}
                     <div className="p-5 flex flex-col text-center flex-1 justify-between">
                       <div>
                         <h3 className="font-semibold text-lg">{p.name}</h3>
-
-                        {/* ⭐ Featured Badge under name */}
                         {p.featured && (
                           <div className="flex justify-center items-center gap-1 mt-1 text-[13px] text-yellow-600 font-medium">
                             <span>⭐</span> <span>Featured</span>
                           </div>
                         )}
-
                         <p className="text-gray-500 text-sm mt-2">
                           {formatCurrency(p.price)}
                         </p>
@@ -338,7 +444,7 @@ export default function ProductsPage() {
                         </p>
                       </div>
 
-                      {/* Color Options */}
+                      {/* Color Selector (unchanged) */}
                       {p.hasColors && (
                         <div className="flex justify-center gap-2 mt-3 flex-wrap">
                           {Object.keys(p.variants || {}).map((clr) => (
