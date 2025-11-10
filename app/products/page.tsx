@@ -165,9 +165,7 @@ export default function ProductsPage() {
     const color = hasColors ? selectedClr : "default";
     const variant = hasColors ? p.variants?.[color] : null;
     const availableStock = hasColors ? variant?.stock ?? 0 : p.stock ?? 0;
-    const image = hasColors
-      ? variant?.images?.[0] || "/placeholder.png"
-      : p.images?.[0] || "/placeholder.png";
+    const image = hasColors ? variant?.images?.[0] : p.images?.[0];
 
     if (!user) {
       showToast("Please sign in to add to cart.", "info");
@@ -249,14 +247,27 @@ export default function ProductsPage() {
     }));
   };
 
-  // 🧭 Animate result refresh
   useEffect(() => {
+    if (loading) return; // don't animate while loading
+
     gsap.fromTo(
-      ".product-card",
+      ".product-card:not(.gsap-animated)",
       { opacity: 0, y: 30 },
-      { opacity: 1, y: 0, stagger: 0.05, duration: 0.4, ease: "power2.out" }
+      {
+        opacity: 1,
+        y: 0,
+        stagger: 0.05,
+        duration: 0.4,
+        ease: "power2.out",
+        onComplete: () => {
+          document
+            .querySelectorAll(".product-card")
+            .forEach((el) => el.classList.add("gsap-animated"));
+        },
+      }
     );
-  }, [filteredProducts]);
+    // ✅ Animate only on meaningful filter/search changes
+  }, [loading, selectedCategory, selectedFilterColor, searchTerm]);
 
   return (
     <>
@@ -392,8 +403,7 @@ export default function ProductsPage() {
                 }
 
                 const activeIndex = activeImageIndex[p.id] ?? 0;
-                const displayImg =
-                  images.length > 0 ? images[activeIndex] : "/placeholder.png";
+                const displayImg = images.length > 0 ? images[activeIndex] : "";
                 const item = getCartItem(p.id, color);
 
                 return (

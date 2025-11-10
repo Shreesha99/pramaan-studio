@@ -10,7 +10,8 @@ import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/lib/formatCurrency";
-import ProductCustomizer from "./ProductCustomizer";
+// import ProductCustomizer from "./ProductCustomizer";
+import { TrashIcon } from "@heroicons/react/24/outline";
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -19,13 +20,14 @@ export default function ProductPage() {
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  // ✅ CALL useCart ONLY ONCE
-  const { addToCart, cart } = useCart();
+  const { cart, addToCart, increaseQty, decreaseQty, removeFromCart } =
+    useCart();
   const { showToast } = useToast();
   const { user, openAuthModal } = useAuth();
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // ✅ Load product once
   useEffect(() => {
     const load = async () => {
       const ref = doc(db, "products", id as string);
@@ -68,16 +70,14 @@ export default function ProductPage() {
     product?.type?.toLowerCase() === "tshirt" ||
     product?.category?.toLowerCase()?.includes("t-shirt");
 
-  // ✅ GET EXISTING ITEM FROM CART SAFELY
+  // ✅ Get current item from cart
+  const colorKey = product.hasColors ? selectedColor : "default";
   const existingCartItem = cart.find(
-    (item) =>
-      item.id === product.id &&
-      (product.hasColors ? item.color === selectedColor : true)
+    (item) => item.id === product.id && item.color === colorKey
   );
-
   const currentQtyInCart = existingCartItem?.qty || 0;
 
-  // ✅ FIXED handleAdd
+  // 🛒 Add-to-cart (like in ProductsPage)
   const handleAdd = async () => {
     if (!user) {
       showToast("Please sign in first.", "info");
@@ -90,36 +90,49 @@ export default function ProductPage() {
       return;
     }
 
-    if (currentQtyInCart >= stock) {
-      showToast("You already added the maximum available stock.", "info");
+    const item = existingCartItem;
+    if (item) {
+      if (item.qty >= stock) {
+        showToast("Maximum stock reached.", "info");
+        return;
+      }
+      increaseQty(product.id, colorKey);
+      showToast("Quantity updated.", "success");
       return;
     }
 
-    // ✅ Check for saved customization
     let customizedImage = localStorage.getItem("latestCustomization");
 
     addToCart({
       id: product.id,
       name: product.name,
       price: product.price,
-      img: activeImg,
       qty: 1,
-      color: product.hasColors ? selectedColor : "default",
+      color: colorKey,
       stock,
+      img: activeImg,
       ...(customizedImage ? { customizedImage } : {}),
     });
 
-    showToast(
-      customizedImage ? "Customized product added to cart!" : "Added to cart.",
-      "success"
-    );
+    showToast("Added to cart.", "success");
+  };
+
+  const handleDecrease = () => {
+    if (!existingCartItem) return;
+    decreaseQty(product.id, colorKey);
+  };
+
+  const handleRemove = () => {
+    removeFromCart(product.id, colorKey);
+    showToast("Removed from cart.", "info");
   };
 
   return (
     <>
       <Header />
 
-      <div className="max-w-[1200px] mx-auto px-6 py-12 grid md:grid-cols-2 gap-12">
+      <div className="max-w-[1200px] mx-auto px-6 py-12 grid md:grid-cols-2 gap-12 transition-opacity duration-150 ease-in-out">
+        {/* ✅ Left: Product Image + Carousel */}
         <div>
           <div
             ref={containerRef}
@@ -134,7 +147,7 @@ export default function ProductPage() {
               unoptimized
             />
 
-            {isTShirt && <ProductCustomizer containerRef={containerRef} />}
+            {/* {isTShirt && <ProductCustomizer containerRef={containerRef} />} */}
           </div>
 
           <div className="flex gap-3 mt-4">
@@ -152,6 +165,7 @@ export default function ProductPage() {
           </div>
         </div>
 
+        {/* ✅ Right: Product Info + Cart Controls */}
         <div>
           <h1 className="text-3xl font-bold">{product.name}</h1>
 
@@ -186,13 +200,45 @@ export default function ProductPage() {
             </div>
           )}
 
-          {/* ✅ ORIGINAL BUTTON RESTORED -- NO CHANGES */}
-          <button
-            onClick={handleAdd}
-            className="mt-8 bg-black text-white px-6 py-3 rounded-full hover:bg-gray-900"
-          >
-            Add to Cart
-          </button>
+          {/* ✅ Cart Controls */}
+          {currentQtyInCart > 0 ? (
+            <div className="mt-8 flex flex-col gap-5 transition-all duration-200 ease-in-out">
+              <div className="flex items-center gap-5">
+                <button
+                  onClick={handleDecrease}
+                  className="w-10 h-10 border rounded-full flex items-center justify-center text-xl font-semibold hover:bg-gray-100"
+                >
+                  –
+                </button>
+
+                <span className="text-lg font-medium w-6 text-center">
+                  {currentQtyInCart}
+                </span>
+
+                <button
+                  onClick={handleAdd}
+                  className="w-10 h-10 border rounded-full flex items-center justify-center text-xl font-semibold hover:bg-gray-100"
+                >
+                  +
+                </button>
+
+                <button
+                  onClick={handleRemove}
+                  className="ml-3 text-gray-500 hover:text-red-600 transition-all"
+                  title="Remove from cart"
+                >
+                  <TrashIcon className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={handleAdd}
+              className="mt-8 bg-black text-white px-6 py-3 rounded-full hover:bg-gray-900 transition-all duration-200 ease-in-out"
+            >
+              Add to Cart
+            </button>
+          )}
         </div>
       </div>
     </>

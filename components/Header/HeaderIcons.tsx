@@ -39,7 +39,7 @@ export default function HeaderIcons({
 
       {/* 🔍 Search */}
       <button onClick={() => setSearchOpen((s: boolean) => !s)}>
-        <MagnifyingGlassIcon className="w-5 h-5 text-gray-700" />
+        <MagnifyingGlassIcon className="w-6 h-6 text-gray-700" />
       </button>
 
       {/* 👤 Auth */}

@@ -3,14 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { PhotoIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import {
-  getStorage,
-  ref,
-  uploadString,
-  getDownloadURL,
-} from "firebase/storage";
-import { getAuth } from "firebase/auth";
-import * as domtoimage from "dom-to-image-more";
 
 type ItemImage = {
   id: string;

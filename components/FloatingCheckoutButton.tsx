@@ -19,7 +19,8 @@ export default function FloatingCheckoutButton() {
       totalQty > 0 &&
       !pathname.startsWith("/checkout") &&
       !pathname.startsWith("/order-success") &&
-      !pathname.startsWith("/order-failed");
+      !pathname.startsWith("/order-failed") &&
+      !pathname.startsWith("/admin");
     setVisible(shouldShow);
   }, [pathname, totalQty]);
 
