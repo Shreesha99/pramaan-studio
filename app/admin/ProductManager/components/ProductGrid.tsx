@@ -1,3 +1,4 @@
+// app/admin/ProductManager/components/ProductGrid.tsx
 "use client";
 import ProductCard from "./ProductCard";
 
@@ -9,8 +10,10 @@ export default function ProductGrid({
   setActiveProduct,
   handleUpdateStock,
   handleDeleteColor,
+  setImageManagerProduct,
+  setEditingColorVariant,
 }: any) {
-  if (!products.length)
+  if (!products || products.length === 0)
     return <p className="text-center text-gray-500">No products found.</p>;
 
   return (
@@ -25,6 +28,8 @@ export default function ProductGrid({
           setActiveProduct={setActiveProduct}
           handleUpdateStock={handleUpdateStock}
           handleDeleteColor={handleDeleteColor}
+          setImageManagerProduct={setImageManagerProduct}
+          setEditingColorVariant={setEditingColorVariant}
         />
       ))}
     </div>

@@ -17,10 +17,27 @@ interface CartDrawerProps {
   setCartOpen: (open: boolean) => void;
 }
 
+export interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  img: string;
+  qty: number;
+  color?: string;
+  stock?: number;
+  size?: string;
+  // Optional gst info (backwards compatible if not present)
+  gst?: {
+    cgst?: number;
+    sgst?: number;
+    total?: number;
+  };
+}
+
 export default function CartDrawer({ cartOpen, setCartOpen }: CartDrawerProps) {
   const {
     cart,
-    totalAmount,
+    totalAmount, // still available (based on price*qty)
     removeFromCart,
     increaseQty,
     decreaseQty,
@@ -49,6 +66,27 @@ export default function CartDrawer({ cartOpen, setCartOpen }: CartDrawerProps) {
 
   const isCartEmpty = cart.length === 0;
 
+  // --- Pricing calculations ---
+  const subtotal = cart.reduce(
+    (sum, item) => sum + (item.price || 0) * item.qty,
+    0
+  );
+
+  // Compute CGST / SGST totals from items if they contain gst info.
+  // If an item doesn't contain gst info, treat as 0% tax for that item.
+  const cgstTotal = cart.reduce((sum, item) => {
+    const cgst = item.gst?.cgst ?? 0;
+    return sum + ((item.price || 0) * item.qty * cgst) / 100;
+  }, 0);
+
+  const sgstTotal = cart.reduce((sum, item) => {
+    const sgst = item.gst?.sgst ?? 0;
+    return sum + ((item.price || 0) * item.qty * sgst) / 100;
+  }, 0);
+
+  const totalTax = cgstTotal + sgstTotal;
+  const grandTotal = subtotal + totalTax;
+
   return (
     <>
       <div
@@ -57,9 +95,14 @@ export default function CartDrawer({ cartOpen, setCartOpen }: CartDrawerProps) {
       >
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
           <h2 className="text-lg font-semibold">Your Cart</h2>
-          <button onClick={() => setCartOpen(false)}>
-            <XMarkIcon className="w-6 h-6 text-gray-700" />
-          </button>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-500">
+              {totalQty} item{totalQty !== 1 ? "s" : ""}
+            </span>
+            <button onClick={() => setCartOpen(false)} aria-label="Close cart">
+              <XMarkIcon className="w-6 h-6 text-gray-700" />
+            </button>
+          </div>
         </div>
 
         {/* 🛍 Cart Content */}
@@ -69,11 +112,26 @@ export default function CartDrawer({ cartOpen, setCartOpen }: CartDrawerProps) {
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {cart.map((item) => {
+            {cart.map((item: CartItem) => {
               const atMax = item.stock !== undefined && item.qty >= item.stock;
+
+              // ✅ Use base price from Firestore
+              const basePrice = Number(item.price || 0);
+
+              // ✅ GST info
+              const gstRate = item.gst?.total ?? 0;
+              const cgst = item.gst?.cgst ?? 0;
+              const sgst = item.gst?.sgst ?? 0;
+
+              // ✅ Final price same logic as admin
+              const finalPrice = basePrice + (basePrice * gstRate) / 100;
+              const lineTotal = finalPrice * item.qty;
+
               return (
                 <div
-                  key={`${item.id}-${item.color || "default"}`}
+                  key={`${item.id}-${item.color || "default"}-${
+                    item.size || "nosize"
+                  }`}
                   className="flex gap-4 border-b border-gray-100 pb-4"
                 >
                   <img
@@ -90,16 +148,37 @@ export default function CartDrawer({ cartOpen, setCartOpen }: CartDrawerProps) {
                           ({item.color})
                         </span>
                       )}
+                      {item.size && (
+                        <span className="ml-2 text-xs text-gray-400">
+                          Size: {item.size}
+                        </span>
+                      )}
                     </h3>
-                    <p className="text-xs text-gray-500">
-                      {formatCurrency(item.price)}
-                    </p>
 
+                    {/* ✅ Price breakdown same as admin */}
+                    <div className="text-xs text-gray-500 mt-1">
+                      <p>
+                        Base: ₹{basePrice.toFixed(2)} × {item.qty}
+                      </p>
+                      {gstRate > 0 && (
+                        <p className="text-gray-400">
+                          GST: {cgst}% + {sgst}% ({gstRate}%)
+                        </p>
+                      )}
+                      <p className="font-medium text-gray-800">
+                        Total (with GST): ₹{lineTotal.toFixed(2)}
+                      </p>
+                    </div>
+
+                    {/* Quantity controls */}
                     <div className="flex items-center mt-2">
                       <button
                         className="p-1 border border-gray-300 rounded-l disabled:opacity-50"
-                        onClick={() => decreaseQty(item.id, item.color)}
+                        onClick={() =>
+                          decreaseQty(item.id, item.color, item.size)
+                        }
                         disabled={item.qty <= 1}
+                        aria-label="Decrease quantity"
                       >
                         <MinusIcon className="w-3 h-3 text-gray-700" />
                       </button>
@@ -113,24 +192,27 @@ export default function CartDrawer({ cartOpen, setCartOpen }: CartDrawerProps) {
                             : "hover:bg-gray-100"
                         }`}
                         onClick={() =>
-                          !atMax && increaseQty(item.id, item.color)
+                          !atMax && increaseQty(item.id, item.color, item.size)
                         }
                         disabled={atMax}
+                        aria-label="Increase quantity"
                       >
                         <PlusIcon className="w-3 h-3 text-gray-700" />
                       </button>
+                      {atMax && (
+                        <p className="text-[10px] text-red-500 ml-3">
+                          Max stock reached
+                        </p>
+                      )}
                     </div>
-
-                    {atMax && (
-                      <p className="text-[10px] text-red-500 mt-1">
-                        Max stock reached
-                      </p>
-                    )}
                   </div>
 
                   <button
-                    onClick={() => removeFromCart(item.id, item.color)}
+                    onClick={() =>
+                      removeFromCart(item.id, item.color, item.size)
+                    }
                     title="Remove from cart"
+                    className="self-start"
                   >
                     <TrashIcon className="w-4 h-4 text-gray-500 hover:text-red-500" />
                   </button>
@@ -140,11 +222,32 @@ export default function CartDrawer({ cartOpen, setCartOpen }: CartDrawerProps) {
           </div>
         )}
 
-        {/* ✅ Checkout Button */}
+        {/* ✅ Checkout / Summary */}
         <div className="p-6 border-t border-gray-200">
-          <div className="flex justify-between text-sm font-medium mb-4">
-            <span>Total</span>
-            <span>{formatCurrency(totalAmount)}</span>
+          <div className="flex justify-between text-sm mb-2">
+            <span className="text-gray-600">Subtotal</span>
+            <span className="font-medium">{formatCurrency(subtotal)}</span>
+          </div>
+
+          {/* Tax breakdown only shown if any tax exists */}
+          <div className="space-y-1 mb-2">
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>CGST</span>
+              <span>{formatCurrency(cgstTotal)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>SGST</span>
+              <span>{formatCurrency(sgstTotal)}</span>
+            </div>
+            <div className="flex justify-between text-xs font-medium">
+              <span>Total Tax</span>
+              <span>{formatCurrency(totalTax)}</span>
+            </div>
+          </div>
+
+          <div className="flex justify-between text-sm font-semibold mb-4">
+            <span>Grand Total</span>
+            <span>{formatCurrency(grandTotal)}</span>
           </div>
 
           <Link href={isCartEmpty ? "#" : "/checkout"}>

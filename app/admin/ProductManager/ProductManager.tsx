@@ -1,3 +1,4 @@
+// app/admin/ProductManager/ProductManager.tsx
 "use client";
 import { useEffect, useState } from "react";
 import {
@@ -8,7 +9,13 @@ import {
   doc,
   deleteDoc,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL, getStorage } from "firebase/storage";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+  getStorage,
+} from "firebase/storage";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/context/ToastContext";
 
@@ -17,6 +24,8 @@ import AddProductForm from "./components/AddProductForm";
 import ProductGrid from "./components/ProductGrid";
 import EditProductModal from "./components/EditProductModal";
 import ColorModal from "./components/ColorModal";
+import ImageManagerModal from "./components/ImageManagerModal";
+import ColorEditModal from "./components/ColorEditModal";
 
 const storage = getStorage();
 
@@ -27,33 +36,46 @@ export default function ProductManager() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ➕ New Product Form
-  const [newProduct, setNewProduct] = useState({
+  // ➕ New Product Form (including gst/gsm/description)
+  const [newProduct, setNewProduct] = useState<any>({
     name: "",
     price: "",
     category: "",
     featured: false,
     hasColors: false,
     showProduct: true,
+    gst: { cgst: 0, sgst: 0, total: 0 },
+    gsm: null,
+    description: "",
   });
 
   const [activeProduct, setActiveProduct] = useState<any | null>(null);
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [imageManagerProduct, setImageManagerProduct] = useState<any | null>(
+    null
+  );
+  const [editingColorVariant, setEditingColorVariant] = useState<{
+    product: any;
+    color: string;
+  } | null>(null);
 
   // 🎨 Color Management
   const [colorName, setColorName] = useState("");
+  const [colorHex, setColorHex] = useState("#000000");
   const [stock, setStock] = useState<number>(0);
   const [files, setFiles] = useState<FileList | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  const [availableColors, setAvailableColors] = useState<string[]>([
-    "Red",
-    "Green",
-    "Yellow",
-    "Blue",
-    "Maroon",
-    "White",
-    "Black",
+  const [availableColors, setAvailableColors] = useState<
+    { name: string; hex: string }[]
+  >([
+    { name: "Red", hex: "#FF0000" },
+    { name: "Green", hex: "#00FF00" },
+    { name: "Yellow", hex: "#FFFF00" },
+    { name: "Blue", hex: "#0000FF" },
+    { name: "Maroon", hex: "#800000" },
+    { name: "White", hex: "#FFFFFF" },
+    { name: "Black", hex: "#000000" },
   ]);
   const [addingNewColor, setAddingNewColor] = useState(false);
   const [newColorInput, setNewColorInput] = useState("");
@@ -64,6 +86,8 @@ export default function ProductManager() {
     "Pants",
     "Shoes",
     "Accessories",
+    "Hoodies",
+    "Jackets",
   ]);
   const [addingNewCategory, setAddingNewCategory] = useState(false);
   const [newCategoryInput, setNewCategoryInput] = useState("");
@@ -94,7 +118,6 @@ export default function ProductManager() {
       showToast("Please fill product name and price.", "info");
       return;
     }
-
     if (!newProduct.category) {
       showToast("Please select a category.", "info");
       return;
@@ -102,17 +125,18 @@ export default function ProductManager() {
 
     try {
       setAddingProductLoading(true);
-      const docRef = await addDoc(collection(db, "products"), {
+      const payload = {
         ...newProduct,
         price: Number(newProduct.price),
+        gst: newProduct.gst ?? { cgst: 0, sgst: 0, total: 0 },
+        gsm: newProduct.gsm ?? null,
+        description: newProduct.description ?? "",
         variants: {},
-      });
+      };
+      const docRef = await addDoc(collection(db, "products"), payload);
 
       showToast("Product added successfully!", "success");
-      setProducts((prev) => [
-        ...prev,
-        { id: docRef.id, ...newProduct, variants: {} },
-      ]);
+      setProducts((prev) => [...prev, { id: docRef.id, ...payload }]);
       setNewProduct({
         name: "",
         price: "",
@@ -120,6 +144,9 @@ export default function ProductManager() {
         featured: false,
         hasColors: false,
         showProduct: true,
+        gst: { cgst: 0, sgst: 0, total: 0 },
+        gsm: null,
+        description: "",
       });
     } catch (err) {
       console.error(err);
@@ -176,7 +203,7 @@ export default function ProductManager() {
       }
 
       const refDoc = doc(db, "products", editingProduct.id);
-      await updateDoc(refDoc, {
+      const payload = {
         name: editingProduct.name,
         price: Number(editingProduct.price),
         category: editingProduct.category,
@@ -184,15 +211,15 @@ export default function ProductManager() {
         hasColors: editingProduct.hasColors,
         showProduct: editingProduct.showProduct,
         stock: Number(editingProduct.stock || 0),
+        gst: editingProduct.gst ?? { cgst: 0, sgst: 0, total: 0 },
+        gsm: editingProduct.gsm ?? null,
+        description: editingProduct.description ?? "",
         images: uploadedUrls,
-      });
+      };
+      await updateDoc(refDoc, payload);
 
       setProducts((prev) =>
-        prev.map((p) =>
-          p.id === editingProduct.id
-            ? { ...editingProduct, images: uploadedUrls }
-            : p
-        )
+        prev.map((p) => (p.id === editingProduct.id ? { ...p, ...payload } : p))
       );
       setEditingProduct(null);
       setEditFiles(null);
@@ -220,7 +247,7 @@ export default function ProductManager() {
     try {
       setAddingCategoryLoading(true);
       setCategories((prev) => [...prev, cat]);
-      setNewProduct((prev) => ({ ...prev, category: cat }));
+      setNewProduct((prev: any) => ({ ...prev, category: cat }));
       setNewCategoryInput("");
       setAddingNewCategory(false);
       showToast(`${cat} added to category list!`, "success");
@@ -229,23 +256,32 @@ export default function ProductManager() {
     }
   };
 
-  // ➕ Add New Color
+  // 🗑 Delete Category
+  const handleDeleteCategory = (cat: string) => {
+    if (confirm(`Delete category "${cat}"?`)) {
+      setCategories((prev) => prev.filter((c) => c !== cat));
+      showToast(`${cat} deleted`, "info");
+    }
+  };
+
+  // ➕ Add New Color (with hex)
   const handleAddNewColor = async () => {
     if (!newColorInput.trim()) {
       showToast("Please enter a color name.", "info");
       return;
     }
     const color = newColorInput.trim();
-    if (availableColors.includes(color)) {
+    if (availableColors.find((c) => c.name === color)) {
       showToast("Color already exists.", "info");
       return;
     }
 
     try {
       setAddingColorLoading(true);
-      setAvailableColors((prev) => [...prev, color]);
+      setAvailableColors((prev) => [...prev, { name: color, hex: colorHex }]);
       setColorName(color);
       setNewColorInput("");
+      setColorHex("#000000");
       setAddingNewColor(false);
       showToast(`${color} added to color list!`, "success");
     } finally {
@@ -253,11 +289,17 @@ export default function ProductManager() {
     }
   };
 
-  // 🎨 Add Color Variant
+  // 🗑 Delete color from list
+  const handleDeleteColorFromList = (colorName: string) => {
+    setAvailableColors((prev) => prev.filter((c) => c.name !== colorName));
+    showToast(`${colorName} removed`, "info");
+  };
+
+  // 🎨 Add Color Variant (creates variant entry with images + sizes default)
   const handleAddColorVariant = async () => {
     if (!activeProduct) return;
-    if (!colorName.trim() || !stock || !files?.length) {
-      showToast("Please select color, stock, and upload image.", "info");
+    if (!colorName.trim() || !files?.length) {
+      showToast("Please select color and upload image(s).", "info");
       return;
     }
 
@@ -272,9 +314,15 @@ export default function ProductManager() {
         uploadedUrls.push(url);
       }
 
+      // default sizes
+      const defaultSizes = { S: 0, M: 0, L: 0, XL: 0 };
+
       const productRef = doc(db, "products", activeProduct.id);
       await updateDoc(productRef, {
-        [`variants.${colorName}`]: { stock, images: uploadedUrls },
+        [`variants.${colorName}`]: {
+          images: uploadedUrls,
+          sizes: defaultSizes,
+        },
       });
 
       setProducts((prev) =>
@@ -284,7 +332,7 @@ export default function ProductManager() {
                 ...p,
                 variants: {
                   ...p.variants,
-                  [colorName]: { stock, images: uploadedUrls },
+                  [colorName]: { images: uploadedUrls, sizes: defaultSizes },
                 },
               }
             : p
@@ -303,7 +351,121 @@ export default function ProductManager() {
     }
   };
 
-  // 🧾 Update Stock of Existing Color
+  // 🧾 Update stock of a single size (auto-save)
+  const handleUpdateVariantSize = async (
+    productId: string,
+    color: string,
+    sizeKey: string,
+    qty: number
+  ) => {
+    try {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
+      const existing = product.variants?.[color] || {};
+      const sizes = { ...(existing.sizes || {}) };
+      sizes[sizeKey] = qty;
+
+      const updatedVariants = {
+        ...product.variants,
+        [color]: { ...existing, sizes },
+      };
+
+      // update firestore
+      await updateDoc(doc(db, "products", productId), {
+        variants: updatedVariants,
+      });
+
+      // update local state
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId ? { ...p, variants: updatedVariants } : p
+        )
+      );
+
+      showToast(`Saved ${color} ${sizeKey} = ${qty}`, "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to save size stock.", "error");
+    }
+  };
+
+  // ➕ Add custom size to a variant (auto-save)
+  const handleAddSizeToVariant = async (
+    productId: string,
+    color: string,
+    newSize: string
+  ) => {
+    if (!newSize || !newSize.trim()) return;
+    try {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
+      const existing = product.variants?.[color] || {};
+      const sizes = { ...(existing.sizes || {}) };
+
+      if (sizes[newSize]) {
+        showToast("Size already exists", "info");
+        return;
+      }
+      sizes[newSize] = 0;
+
+      const updatedVariants = {
+        ...product.variants,
+        [color]: { ...existing, sizes },
+      };
+
+      await updateDoc(doc(db, "products", productId), {
+        variants: updatedVariants,
+      });
+
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId ? { ...p, variants: updatedVariants } : p
+        )
+      );
+
+      showToast(`Added size ${newSize}`, "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to add size.", "error");
+    }
+  };
+
+  // 🗑 Delete a size from a variant
+  const handleDeleteSizeFromVariant = async (
+    productId: string,
+    color: string,
+    sizeKey: string
+  ) => {
+    try {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
+      const existing = product.variants?.[color] || {};
+      const sizes = { ...(existing.sizes || {}) };
+      delete sizes[sizeKey];
+
+      const updatedVariants = {
+        ...product.variants,
+        [color]: { ...existing, sizes },
+      };
+
+      await updateDoc(doc(db, "products", productId), {
+        variants: updatedVariants,
+      });
+
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId ? { ...p, variants: updatedVariants } : p
+        )
+      );
+
+      showToast(`Removed size ${sizeKey}`, "info");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to delete size.", "error");
+    }
+  };
+
+  // 🧾 Update Stock number fallback (legacy single stock per color)
   const handleUpdateStock = async (
     productId: string,
     color: string,
@@ -315,7 +477,7 @@ export default function ProductManager() {
       if (!product) return;
       const updatedVariants = {
         ...product.variants,
-        [color]: { ...product.variants[color], stock: newStock },
+        [color]: { ...(product.variants?.[color] || {}), stock: newStock },
       };
       await updateDoc(refDoc, { variants: updatedVariants });
       setProducts((prev) =>
@@ -329,13 +491,12 @@ export default function ProductManager() {
     }
   };
 
-  // 🗑️ Delete Color Variant
+  // 🗑️ Delete Color Variant (keeps behavior)
   const handleDeleteColor = async (productId: string, color: string) => {
     try {
       const refDoc = doc(db, "products", productId);
       const product = products.find((p) => p.id === productId);
       if (!product) return;
-
       const updatedVariants = { ...product.variants };
       delete updatedVariants[color];
 
@@ -353,9 +514,30 @@ export default function ProductManager() {
     }
   };
 
+  // 🖼 Delete Image from product
+  const handleDeleteImage = async (productId: string, imageUrl: string) => {
+    try {
+      const path = decodeURIComponent(imageUrl.split("/o/")[1].split("?")[0]);
+      const storageRef = ref(storage, path);
+      await deleteObject(storageRef);
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
+      const updated = (product.images || []).filter(
+        (img: string) => img !== imageUrl
+      );
+      await updateDoc(doc(db, "products", productId), { images: updated });
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, images: updated } : p))
+      );
+      showToast("Image deleted.", "success");
+    } catch {
+      showToast("Failed to delete image.", "error");
+    }
+  };
+
   // ✅ UI
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 px-4 py-6">
       <h1 className="text-3xl font-bold mb-8 text-center">
         🧩 Product Management
       </h1>
@@ -373,6 +555,7 @@ export default function ProductManager() {
           handleAddNewCategory,
           handleAddProduct,
           addingProductLoading,
+          handleDeleteCategory,
         }}
       />
 
@@ -388,6 +571,8 @@ export default function ProductManager() {
             setActiveProduct,
             handleUpdateStock,
             handleDeleteColor,
+            setImageManagerProduct,
+            setEditingColorVariant,
           }}
         />
       )}
@@ -419,6 +604,9 @@ export default function ProductManager() {
             setNewColorInput,
             addingColorLoading,
             handleAddNewColor,
+            handleDeleteColorFromList,
+            colorHex,
+            setColorHex,
             colorName,
             setColorName,
             stock,
@@ -427,6 +615,35 @@ export default function ProductManager() {
             setFiles,
             uploading,
             handleAddColorVariant,
+            // sizes management (passed down)
+            handleAddSizeToVariant,
+            handleUpdateVariantSize,
+            handleDeleteSizeFromVariant,
+          }}
+        />
+      )}
+
+      {imageManagerProduct && (
+        <ImageManagerModal
+          {...{
+            product: imageManagerProduct,
+            setImageManagerProduct,
+            handleDeleteImage,
+          }}
+        />
+      )}
+
+      {editingColorVariant && (
+        <ColorEditModal
+          {...{
+            editingColorVariant,
+            setEditingColorVariant,
+            showToast,
+            products,
+            setProducts,
+            handleAddSizeToVariant,
+            handleUpdateVariantSize,
+            handleDeleteSizeFromVariant,
           }}
         />
       )}

@@ -17,6 +17,7 @@ export default function EditProductModal({
       <div className="bg-white p-6 rounded-xl shadow-xl w-[400px]">
         <h2 className="text-lg font-semibold mb-4 text-center">Edit Product</h2>
 
+        {/* 🏷 Product Name */}
         <input
           type="text"
           value={editingProduct.name}
@@ -26,6 +27,7 @@ export default function EditProductModal({
           className="w-full px-3 py-2 border rounded-md text-sm mb-2"
         />
 
+        {/* 💰 Base Price */}
         <input
           type="number"
           value={editingProduct.price}
@@ -38,6 +40,99 @@ export default function EditProductModal({
           className="w-full px-3 py-2 border rounded-md text-sm mb-2"
         />
 
+        {/* 📝 Description */}
+        <textarea
+          placeholder="Enter or edit product description"
+          value={editingProduct.description ?? ""}
+          onChange={(e) =>
+            setEditingProduct({
+              ...editingProduct,
+              description: e.target.value,
+            })
+          }
+          className="w-full px-3 py-2 border rounded-md text-sm mb-3"
+          rows={3}
+        />
+
+        {/* 🧾 GST Fields */}
+        <div className="flex gap-2 mb-3">
+          <div className="flex-1">
+            <label className="text-xs text-gray-600">CGST (%)</label>
+            <input
+              type="number"
+              value={editingProduct.gst?.cgst ?? 0}
+              onChange={(e) =>
+                setEditingProduct({
+                  ...editingProduct,
+                  gst: {
+                    ...editingProduct.gst,
+                    cgst: Number(e.target.value),
+                    total:
+                      Number(e.target.value) +
+                      Number(editingProduct.gst?.sgst ?? 0),
+                  },
+                })
+              }
+              className="w-full px-2 py-1 border rounded-md text-sm"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-xs text-gray-600">SGST (%)</label>
+            <input
+              type="number"
+              value={editingProduct.gst?.sgst ?? 0}
+              onChange={(e) =>
+                setEditingProduct({
+                  ...editingProduct,
+                  gst: {
+                    ...editingProduct.gst,
+                    sgst: Number(e.target.value),
+                    total:
+                      Number(e.target.value) +
+                      Number(editingProduct.gst?.cgst ?? 0),
+                  },
+                })
+              }
+              className="w-full px-2 py-1 border rounded-md text-sm"
+            />
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-500 mb-3">
+          Total GST: <b>{editingProduct.gst?.total ?? 0}%</b>
+        </p>
+
+        {/* 🧵 GSM Field */}
+        <div className="mb-3">
+          <label className="block text-xs text-gray-600 mb-1">GSM</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={editingProduct.gsm ?? ""}
+              onChange={(e) =>
+                setEditingProduct({
+                  ...editingProduct,
+                  gsm: e.target.value ? Number(e.target.value) : null,
+                })
+              }
+              placeholder="e.g. 180"
+              className="flex-1 px-2 py-1 border rounded-md text-sm"
+            />
+            {editingProduct.gsm && (
+              <button
+                onClick={() =>
+                  setEditingProduct((prev: any) => ({ ...prev, gsm: null }))
+                }
+                className="text-xs text-red-500 hover:text-red-700"
+                title="Remove GSM"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 🧮 Stock (for non-color items) */}
         {!editingProduct.hasColors && (
           <input
             type="number"
@@ -53,7 +148,7 @@ export default function EditProductModal({
           />
         )}
 
-        {/* Upload product images */}
+        {/* 📁 Images */}
         <input
           type="file"
           multiple
@@ -69,12 +164,7 @@ export default function EditProductModal({
           📁 Choose Product Images
         </label>
 
-        {editFiles && editFiles.length > 0 && (
-          <p className="mt-2 text-xs text-gray-500 text-center mb-2">
-            {editFiles.length} file{editFiles.length > 1 ? "s" : ""} selected
-          </p>
-        )}
-
+        {/* 📂 Category */}
         <select
           value={editingProduct.category}
           onChange={(e) =>
@@ -90,6 +180,7 @@ export default function EditProductModal({
           ))}
         </select>
 
+        {/* ⚙️ Flags */}
         <div className="grid grid-cols-2 gap-2 mb-4">
           <label className="text-xs">
             <input
@@ -132,6 +223,7 @@ export default function EditProductModal({
           </label>
         </div>
 
+        {/* 🧾 Buttons */}
         <div className="flex gap-3">
           <button
             onClick={() => setEditingProduct(null)}

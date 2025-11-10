@@ -18,27 +18,38 @@ import {
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 
+export interface GSTInfo {
+  cgst?: number;
+  sgst?: number;
+  total?: number;
+}
+
 export interface CartItem {
   id: string;
   name: string;
   price: number;
   img: string;
   qty: number;
-  color?: string; // ✅ added for variant color
+  color?: string;
+  size?: string;
   stock?: number;
+  gst?: GSTInfo;
 }
 
 interface CartContextType {
   cart: CartItem[];
   totalQty: number;
+  subtotal: number;
+  taxTotal: number;
+  grandTotal: number;
   totalAmount: number;
   addToCart: (item: CartItem) => void;
-  removeFromCart: (id: string, color?: string) => void;
-  increaseQty: (id: string, color?: string) => void;
-  decreaseQty: (id: string, color?: string) => void;
+  removeFromCart: (id: string, color?: string, size?: string) => void;
+  increaseQty: (id: string, color?: string, size?: string) => void;
+  decreaseQty: (id: string, color?: string, size?: string) => void;
   clearCart: () => void;
-  isCartOpen: boolean; // ✅ add this
-  setIsCartOpen: (open: boolean) => void; // ✅ add this
+  isCartOpen: boolean;
+  setIsCartOpen: (open: boolean) => void;
 }
 
 const CartContext = createContext<CartContextType | null>(null);
@@ -46,17 +57,11 @@ const CartContext = createContext<CartContextType | null>(null);
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
-
-  const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
-  const totalAmount = cart.reduce(
-    (sum, item) => sum + item.qty * item.price,
-    0
-  );
-
-  const userCartRef = user ? collection(db, "users", user.uid, "cart") : null;
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // --- Load user cart from Firestore ---
+  const userCartRef = user ? collection(db, "users", user.uid, "cart") : null;
+
+  // --- Load user cart ---
   useEffect(() => {
     if (!userCartRef) {
       setCart([]);
@@ -75,23 +80,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => unsub();
   }, [user]);
 
-  // --- Firestore helpers ---
-  const getFirestoreId = (id: string, color?: string) =>
-    color && color !== "default" ? `${id}__${color}` : id;
+  // --- Helpers ---
+  const getFirestoreId = (id: string, color?: string, size?: string) => {
+    const parts = [id];
+    if (color && color !== "default") parts.push(color);
+    if (size) parts.push(size);
+    return parts.join("__");
+  };
 
   const syncToFirestore = useCallback(
     async (item: CartItem) => {
       if (!userCartRef) return;
-      const docRef = doc(userCartRef, getFirestoreId(item.id, item.color));
+      const docRef = doc(
+        userCartRef,
+        getFirestoreId(item.id, item.color, item.size)
+      );
       await setDoc(docRef, item);
     },
     [userCartRef]
   );
 
   const deleteFromFirestore = useCallback(
-    async (id: string, color?: string) => {
+    async (id: string, color?: string, size?: string) => {
       if (!userCartRef) return;
-      const docRef = doc(userCartRef, getFirestoreId(id, color));
+      const docRef = doc(userCartRef, getFirestoreId(id, color, size));
       await deleteDoc(docRef);
     },
     [userCartRef]
@@ -101,14 +113,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addToCart = (item: CartItem) => {
     setCart((prev) => {
       const existing = prev.find(
-        (p) => p.id === item.id && p.color === item.color
+        (p) =>
+          p.id === item.id && p.color === item.color && p.size === item.size
       );
 
-      // 🧠 Respect stock limit
       if (existing) {
         if (existing.stock && existing.qty >= existing.stock) return prev;
         const updated = prev.map((p) =>
-          p.id === item.id && p.color === item.color
+          p.id === item.id && p.color === item.color && p.size === item.size
             ? { ...p, qty: p.qty + 1 }
             : p
         );
@@ -121,32 +133,42 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const removeFromCart = (id: string, color?: string) => {
-    setCart((prev) => prev.filter((p) => !(p.id === id && p.color === color)));
-    deleteFromFirestore(id, color);
+  const removeFromCart = (id: string, color?: string, size?: string) => {
+    setCart((prev) =>
+      prev.filter((p) => !(p.id === id && p.color === color && p.size === size))
+    );
+    deleteFromFirestore(id, color, size);
   };
 
-  const increaseQty = (id: string, color?: string) => {
+  const increaseQty = (id: string, color?: string, size?: string) => {
     setCart((prev) => {
       const updated = prev.map((p) =>
-        p.id === id && p.color === color ? { ...p, qty: p.qty + 1 } : p
+        p.id === id && p.color === color && p.size === size
+          ? { ...p, qty: p.qty + 1 }
+          : p
       );
-      const item = updated.find((i) => i.id === id && i.color === color);
+      const item = updated.find(
+        (i) => i.id === id && i.color === color && i.size === size
+      );
       if (item) syncToFirestore(item);
       return updated;
     });
   };
 
-  const decreaseQty = (id: string, color?: string) => {
+  const decreaseQty = (id: string, color?: string, size?: string) => {
     setCart((prev) => {
       const updated = prev
         .map((p) =>
-          p.id === id && p.color === color ? { ...p, qty: p.qty - 1 } : p
+          p.id === id && p.color === color && p.size === size
+            ? { ...p, qty: p.qty - 1 }
+            : p
         )
         .filter((p) => p.qty > 0);
-      const item = updated.find((i) => i.id === id && i.color === color);
+      const item = updated.find(
+        (i) => i.id === id && i.color === color && i.size === size
+      );
       if (item) syncToFirestore(item);
-      else deleteFromFirestore(id, color);
+      else deleteFromFirestore(id, color, size);
       return updated;
     });
   };
@@ -154,16 +176,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clearCart = () => {
     setCart([]);
     if (userCartRef) {
-      cart.forEach((i) => deleteFromFirestore(i.id, i.color));
+      cart.forEach((i) => deleteFromFirestore(i.id, i.color, i.size));
     }
   };
+
+  // --- Derived Totals ---
+  const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
+  const subtotal = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
+
+  // per-item tax based on gst fields
+  const taxTotal = cart.reduce((sum, item) => {
+    const taxRate = item.gst?.total ?? 0;
+    return sum + item.qty * item.price * (taxRate / 100);
+  }, 0);
+
+  const grandTotal = subtotal + taxTotal;
 
   return (
     <CartContext.Provider
       value={{
         cart,
         totalQty,
-        totalAmount,
+        subtotal,
+        taxTotal,
+        grandTotal,
+        totalAmount: subtotal, // alias for backward compatibility
         addToCart,
         removeFromCart,
         increaseQty,

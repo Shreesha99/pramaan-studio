@@ -75,15 +75,20 @@ export default function MyOrdersPage() {
                     {/* 🧾 Order Header */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5">
                       <div>
-                        <h2 className="font-semibold text-lg">
-                          Order #{order.id.slice(0, 8)}
+                        <h2 className="font-semibold text-lg break-all">
+                          Order ID: {order.orderId || order.id}
                         </h2>
                         <p className="text-sm text-gray-500">
                           Placed on{" "}
-                          {new Date(order.createdAt).toLocaleString("en-IN", {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          })}
+                          {order.createdAt
+                            ? new Date(order.createdAt).toLocaleString(
+                                "en-IN",
+                                {
+                                  dateStyle: "medium",
+                                  timeStyle: "short",
+                                }
+                              )
+                            : "—"}
                         </p>
                       </div>
                       <p className="text-lg font-semibold mt-3 sm:mt-0">
@@ -106,14 +111,27 @@ export default function MyOrdersPage() {
                             alt={item.name}
                             className="w-16 h-16 object-cover rounded-lg border"
                           />
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-[200px]">
                             <p className="font-medium">{item.name}</p>
                             <p className="text-gray-500 text-sm">
-                              Color: {item.color}
+                              Color: {item.color || "—"} | Size:{" "}
+                              {item.size || "—"}
                             </p>
                             <p className="text-gray-500 text-sm">
                               Qty: {item.qty} × ₹{item.price}
                             </p>
+                            {item.customizedImage && (
+                              <div className="mt-2">
+                                <p className="text-xs text-gray-500">
+                                  Customized Design:
+                                </p>
+                                <img
+                                  src={item.customizedImage}
+                                  alt="custom"
+                                  className="w-20 h-20 object-contain border rounded-md mt-1"
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -125,8 +143,9 @@ export default function MyOrdersPage() {
                         <h3 className="font-semibold text-gray-700 mb-1">
                           Shipping Address
                         </h3>
-                        <p className="text-sm text-gray-600">
-                          {order.shipping.name} <br />
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          {order.shipping.name}
+                          <br />
                           {order.shipping.address}, {order.shipping.city},{" "}
                           {order.shipping.state} - {order.shipping.pincode}
                           <br />
@@ -162,10 +181,12 @@ function OrderStatusTracker({ status = "Paid" }: { status: string }) {
   );
 
   const currentIndex = steps.findIndex((s) => s.key === status);
-  const progress = ((currentIndex + 1) / steps.length) * 100;
+  const progress =
+    status === "cancelled" ? 0 : ((currentIndex + 1) / steps.length) * 100;
 
   return (
     <div className="mt-6">
+      {/* Step Labels */}
       <div className="flex justify-between mb-2">
         {steps.map((step, index) => (
           <div
@@ -182,31 +203,47 @@ function OrderStatusTracker({ status = "Paid" }: { status: string }) {
       {/* 🟩 Animated progress bar */}
       <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
         <motion.div
-          className="absolute top-0 left-0 h-2 bg-black rounded-full"
+          className={`absolute top-0 left-0 h-2 ${
+            status === "cancelled" ? "bg-red-500" : "bg-black"
+          } rounded-full`}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.8, ease: "easeInOut" }}
         />
       </div>
 
-      {/* 🔵 Dots with scale animation */}
+      {/* 🔵 Dots */}
       <div className="flex justify-between mt-2">
         {steps.map((_, i) => (
           <motion.div
             key={i}
             className={`w-4 h-4 rounded-full border-2 ${
-              i <= currentIndex
+              i <= currentIndex && status !== "cancelled"
                 ? "bg-black border-black"
                 : "bg-white border-gray-400"
             }`}
             animate={{
-              scale: i === currentIndex ? 1.2 : 1,
+              scale: i === currentIndex && status !== "cancelled" ? 1.2 : 1,
               backgroundColor:
-                i <= currentIndex ? "rgb(0,0,0)" : "rgb(255,255,255)",
+                i <= currentIndex && status !== "cancelled"
+                  ? "rgb(0,0,0)"
+                  : "rgb(255,255,255)",
             }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
           />
         ))}
       </div>
+
+      {/* ❌ Cancelled Message */}
+      {status === "cancelled" && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-sm text-red-600 mt-3 font-medium text-center"
+        >
+          ❌ Order cancelled from our side. Contact us on WhatsApp for further
+          details.
+        </motion.p>
+      )}
     </div>
   );
 }
