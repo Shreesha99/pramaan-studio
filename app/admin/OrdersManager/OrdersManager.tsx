@@ -265,7 +265,7 @@ export default function OrdersManager() {
                     loading={false}
                     text="Cancel Order"
                     loadingText="Cancelling..."
-                    className="bg-red-600 text-white text-sm py-1"
+                    className="bg-red-600 text-white text-sm py-1 px-2 "
                   />
                 )}
               </div>
