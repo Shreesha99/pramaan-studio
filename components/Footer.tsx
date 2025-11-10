@@ -93,7 +93,7 @@ export default function Footer() {
       {/* Main Footer Grid */}
       <div className="max-w-[1200px] mx-auto px-6 py-16 grid grid-cols-2 md:grid-cols-4 gap-10 text-sm text-gray-600">
         {/* Company */}
-        <div>
+        {/* <div>
           <h4 className="font-semibold mb-4 text-black text-lg tracking-wide">
             Company
           </h4>
@@ -114,7 +114,7 @@ export default function Footer() {
               </a>
             </li>
           </ul>
-        </div>
+        </div> */}
 
         {/* Help */}
         <div>
@@ -170,11 +170,11 @@ export default function Footer() {
             Resources
           </h4>
           <ul className="space-y-2">
-            <li>
+            {/* <li>
               <a href="/developers" className="hover:text-black">
                 Developers
               </a>
-            </li>
+            </li> */}
             <li>
               <a href="/terms" className="hover:text-black">
                 Terms & Conditions

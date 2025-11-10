@@ -34,8 +34,8 @@ export default function HeaderNav({ mobileNavOpen, setMobileNavOpen }: Props) {
     <>
       <nav className="hidden md:flex items-center gap-10 text-sm font-medium text-gray-700">
         <Link href="/products">Products</Link>
-        <a href="#products">Our range</a>
-        <a href="#our-work">Our work</a>
+        {/* <a href="#products">Our range</a>
+        <a href="#our-work">Our work</a> */}
       </nav>
 
       {/* 📱 Mobile Dropdown */}
