@@ -144,7 +144,7 @@ export default function ProfileDropdown({
           onChange={(e) => setEmailLocal(e.target.value)}
           className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-black"
         />
-        <textarea
+        {/* <textarea
           placeholder="Billing Address"
           value={billing}
           onChange={(e) => setBilling(e.target.value)}
@@ -164,7 +164,7 @@ export default function ProfileDropdown({
           onChange={(e) => setDelivery(e.target.value)}
           disabled={sameAsBilling}
           className="w-full border rounded-lg px-3 py-2 text-sm outline-none h-20"
-        />
+        /> */}
         <button
           type="submit"
           disabled={loading}

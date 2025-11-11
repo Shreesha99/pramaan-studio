@@ -335,10 +335,25 @@ export default function Hero() {
     };
   }, []);
 
+  useEffect(() => {
+    const setVH = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty("--vh", `${vh}px`);
+    };
+    setVH();
+    window.addEventListener("resize", setVH);
+    window.addEventListener("orientationchange", setVH);
+    return () => {
+      window.removeEventListener("resize", setVH);
+      window.removeEventListener("orientationchange", setVH);
+    };
+  }, []);
+
   return (
     <section
       ref={sectionRef}
-      className="relative w-screen h-screen overflow-hidden"
+      className="relative w-screen overflow-hidden"
+      style={{ height: "calc(var(--vh, 1vh) * 100)" }}
     >
       {/* Custom Black Cursor (visible on all sizes; acts as cursor inside section) */}
       <div
@@ -411,10 +426,13 @@ export default function Hero() {
       <div
         ref={stripRef}
         className="absolute inset-0 flex overflow-x-hidden"
-        style={{ willChange: "transform" }}
+        style={{ willChange: "transform", maxHeight: "100%" }}
       >
         {heroImages.map((src, i) => (
-          <div key={i} className="panel relative h-220 overflow-hidden">
+          <div
+            key={i}
+            className="panel relative h-full overflow-hidden flex-shrink-0"
+          >
             <Image
               src={src}
               alt={`Hero ${i + 1}`}
