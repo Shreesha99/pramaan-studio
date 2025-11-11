@@ -28,6 +28,10 @@ const categories = [
     title: "Bottles",
     img: "/assets/img/bottle.png",
   },
+  {
+    title: "Jerseys",
+    img: "/assets/img/bottle.png",
+  },
 ];
 
 export default function OurRange() {
@@ -197,6 +201,35 @@ export default function OurRange() {
                 }
               }}
               className="inline-block opacity-0 md:opacity-0 px-4 py-2 text-sm font-semibold bg-white/10 backdrop-blur-sm border border-white/30 rounded-full hover:bg-white/20 transition-all"
+            >
+              Shop Now →
+            </Link>
+          </div>
+        </motion.div>
+        {/* 🏈 Jerseys (Full Width) */}
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 200, damping: 18 }}
+          className="md:col-span-12 h-[320px] relative overflow-hidden rounded-2xl shadow-xl group anim-card"
+        >
+          <Image
+            src={categories[4].img}
+            alt={categories[4].title}
+            fill
+            sizes="800px"
+            className="object-cover group-hover:scale-110 transition-all duration-500"
+          />
+          <div className="absolute inset-0 bg-black/25 group-hover:bg-black/40 transition-all duration-300" />
+          <div className="absolute bottom-6 left-6 text-white space-y-3">
+            <p className="text-3xl font-bold">{categories[4].title}</p>
+            <Link
+              href="/products"
+              ref={(el) => {
+                if (el && !buttonRefs.current.includes(el)) {
+                  buttonRefs.current.push(el);
+                }
+              }}
+              className="inline-block opacity-0 px-4 py-2 text-sm font-semibold bg-white/10 backdrop-blur-sm border border-white/30 rounded-full hover:bg-white/20 transition-all"
             >
               Shop Now →
             </Link>

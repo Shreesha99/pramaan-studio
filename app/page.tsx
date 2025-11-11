@@ -3,7 +3,7 @@
 import Header from "@/components/Header/Header";
 import Hero from "@/components/Hero";
 import NewCollection from "@/components/NewCollection";
-import ExploreSection from "@/components/ExploreSection";
+import InstagramShowcase from "@/components/ExploreSection";
 import Footer from "@/components/Footer";
 import { useGsapAnimations } from "@/lib/useGsapAnimations";
 
@@ -22,7 +22,7 @@ export default function HomePage() {
             <NewCollection />
           </section>
 
-          <ExploreSection />
+          <InstagramShowcase />
         </div>
       </main>
 

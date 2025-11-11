@@ -34,7 +34,7 @@ export default function CustomCursor() {
 
   return (
     <motion.div
-      className="fixed top-0 left-0 z-[9999] pointer-events-none flex items-center justify-center rounded-full bg-black text-white text-[10px] font-semibold uppercase tracking-wide"
+      className="fixed top-0 left-0 z-[9999] pointer-events-none flex items-center justify-center rounded-full bg-black text-white text-[10px] font-semibold uppercase tracking-wide text-center"
       style={{
         width: 90,
         height: 90,

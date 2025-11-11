@@ -410,19 +410,21 @@ export default function ProductsPage() {
                     {/* Image */}
                     <Link
                       href={`/product/${p.id}`}
-                      className="relative block shrink-0"
-                      onMouseEnter={() =>
+                      className="relative block shrink-0 group"
+                      onMouseEnter={() => {
+                        document.body.classList.add("cursor-view");
                         window.dispatchEvent(
                           new CustomEvent("pause-carousel", { detail: p.id })
-                        )
-                      }
-                      onMouseLeave={() =>
+                        );
+                      }}
+                      onMouseLeave={() => {
+                        document.body.classList.remove("cursor-view");
                         window.dispatchEvent(
                           new CustomEvent("resume-carousel", { detail: p.id })
-                        )
-                      }
+                        );
+                      }}
                     >
-                      <div className="relative h-80 w-full overflow-hidden cursor-none">
+                      <div className="relative h-80 w-full overflow-hidden">
                         <Image
                           id={`img-${p.id}`}
                           key={displayImg}
@@ -430,8 +432,10 @@ export default function ProductsPage() {
                           alt={p.name}
                           width={500}
                           height={500}
-                          className="object-cover w-full h-full"
+                          className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                         />
+
+                        {/* 🧭 Image Nav Arrows (Mark as no-cursor-zone so the cursor hides) */}
                         {images.length > 1 && (
                           <>
                             <button
@@ -439,7 +443,7 @@ export default function ProductsPage() {
                                 e.preventDefault();
                                 handlePrevImage(p.id, images.length);
                               }}
-                              className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition"
+                              className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition no-cursor-zone"
                             >
                               <ChevronLeftIcon className="w-5 h-5" />
                             </button>
@@ -448,7 +452,7 @@ export default function ProductsPage() {
                                 e.preventDefault();
                                 handleNextImage(p.id, images.length);
                               }}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition no-cursor-zone"
                             >
                               <ChevronRightIcon className="w-5 h-5" />
                             </button>

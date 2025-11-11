@@ -13,7 +13,7 @@ export function useGsapAnimations() {
       gsap.from(section, {
         scrollTrigger: {
           trigger: section,
-          start: "top 80%",
+          start: "top 100%",
           toggleActions: "play none none reverse",
         },
         y: 80,
