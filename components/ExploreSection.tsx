@@ -9,7 +9,7 @@ import Link from "next/link";
 import { SparklesIcon } from "@heroicons/react/24/solid";
 
 gsap.registerPlugin(ScrollTrigger);
-
+gsap.ticker.lagSmoothing(1000, 16);
 interface ProfileSlide {
   type: "profile";
   username: string;
@@ -75,11 +75,12 @@ export default function InstagramShowcase() {
           trigger: section,
           animation: tl,
           pin: true,
-          scrub: 1,
+          scrub: 0.3,
           anticipatePin: 1,
           start: "top top",
           end: `+=${clampedWidth}`,
           invalidateOnRefresh: true,
+          fastScrollEnd: true,
           // markers: true,
         });
       };
@@ -122,8 +123,11 @@ export default function InstagramShowcase() {
     >
       <div
         ref={trackRef}
-        className="absolute top-0 left-0 h-svh flex"
-        style={{ width: `${slides.length * 100}vw` }}
+        className="absolute top-0 left-0 h-svh flex will-change-transform"
+        style={{
+          width: `${slides.length * 100}vw`,
+          transform: "translate3d(0,0,0)",
+        }}
       >
         {slides.map((s, i) => (
           <div
@@ -203,13 +207,15 @@ export default function InstagramShowcase() {
             {/* =================== POST SLIDE =================== */}
             {s.type === "post" && (
               <motion.div
-                initial={{ opacity: 0.5, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true, amount: 0.4 }}
                 transition={{ duration: 0.6 }}
                 className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden"
               >
                 <div className="aspect-[4/5] w-full">
                   <iframe
+                    loading="lazy"
                     src={s.embed}
                     allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
                     className="w-full h-full border-none overflow-hidden rounded-2xl"
