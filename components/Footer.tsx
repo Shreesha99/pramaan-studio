@@ -38,7 +38,7 @@ export default function Footer() {
           <ul className="space-y-2">
             <li>
               <a href="/contact" className="hover:text-black">
-                Customer Support
+                Contact us
               </a>
             </li>
             <li>
@@ -67,7 +67,7 @@ export default function Footer() {
             </li>
             <li>
               <a href="/cancellation-refund" className="hover:text-black">
-                Returns
+                Cancellation and refunds
               </a>
             </li>
             <li>
