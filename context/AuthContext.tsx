@@ -216,8 +216,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       await signOut(auth);
-      // onAuthStateChanged will update local state and write localStorage,
-      // but also broadcast explicitly for speed:
+
+      showToast("Logged out successfully!", "info");
+
       const small = null;
       try {
         const bc = new BroadcastChannel("pramaan_auth");

@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer";
 import { formatCurrency } from "@/lib/formatCurrency";
+import HeaderNav from "@/components/Header/HeaderNav";
+import GsapButton from "@/components/GsapButton";
 
 export default function MyOrdersPage() {
   const { user } = useAuth();
@@ -44,6 +46,15 @@ export default function MyOrdersPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <p className="text-gray-500 text-lg">Please sign in to view orders.</p>
+        <GsapButton
+          onClick={() => {
+            window.location.href = "/";
+          }}
+          loading={false}
+          text="← Go to Home"
+          loadingText="Redirecting..."
+          className="w-full bg-black text-white py-2.5 rounded-md font-medium hover:bg-gray-900 transition"
+        />
       </div>
     );
 
