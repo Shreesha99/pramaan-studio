@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     }
 
     const base = "560062"; // Your base pincode (Bangalore)
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    const apiKey = process.env.GOOGLE_MAPS_API;
 
     if (!apiKey) {
       return NextResponse.json(
