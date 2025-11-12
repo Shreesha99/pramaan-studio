@@ -37,7 +37,7 @@ export default function InstagramShowcase() {
       username: "pramaan_print_studio",
       name: "PraMaan Print Studio",
       bio: "Custom Apparel • Branding • Merch\n🎨 We bring your ideas to life.\n📍Bangalore, India",
-      img: "/assets/img/nav-logo.png",
+      img: "/assets/img/logo.jpg",
       link: "https://www.instagram.com/pramaan_print_studio/",
     },
     {
@@ -119,7 +119,7 @@ export default function InstagramShowcase() {
     <section
       ref={sectionRef}
       id="instagram-showcase"
-      className="relative w-screen h-svh overflow-hidden bg-[#fafafa]"
+      className="hidden md:block relative w-screen h-svh overflow-hidden bg-[#fafafa]"
     >
       <div
         ref={trackRef}
@@ -144,7 +144,7 @@ export default function InstagramShowcase() {
               >
                 {/* 🌈 Animated Gradient Glow */}
                 <motion.div
-                  className="absolute -inset-10 bg-gradient-to-r from-pink-400 via-yellow-400 to-purple-500 blur-3xl opacity-20"
+                  className="absolute -inset-10 bg-linear-to-r from-pink-400 via-yellow-400 to-purple-500 blur-3xl opacity-20"
                   animate={{
                     backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                   }}
@@ -196,7 +196,7 @@ export default function InstagramShowcase() {
                     href={s.link as string}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-block bg-gradient-to-r from-pink-500 to-yellow-500 text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition-all shadow-md mt-4"
+                    className="inline-block bg-linear-to-r from-pink-500 to-yellow-500 text-white font-semibold px-6 py-3 rounded-full hover:opacity-90 transition-all shadow-md mt-4"
                   >
                     Follow on Instagram →
                   </Link>
@@ -213,7 +213,7 @@ export default function InstagramShowcase() {
                 transition={{ duration: 0.6 }}
                 className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden"
               >
-                <div className="aspect-[4/5] w-full">
+                <div className="aspect-4/5 w-full">
                   <iframe
                     loading="lazy"
                     src={s.embed}

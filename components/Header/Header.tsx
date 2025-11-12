@@ -83,16 +83,16 @@ export default function Header() {
           <Link href="/">
             <div className="flex items-center gap-2">
               <Image
-                src="/assets/img/nav-logo.png"
+                src="/assets/img/logo.jpg"
                 alt="PraMaan Logo"
                 width={36}
                 height={36}
                 priority
-                className="w-9 h-9 object-contain"
+                className="w-20 h-20 object-contain"
               />
-              <span className="hidden md:inline text-xl tracking-tight">
+              {/* <span className="hidden md:inline text-xl tracking-tight">
                 PraMaan
-              </span>
+              </span> */}
             </div>
           </Link>
 
