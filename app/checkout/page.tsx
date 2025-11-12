@@ -17,10 +17,8 @@ async function getDistanceKm(pincode: string): Promise<number | null> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pincode }),
     });
-
     const json = await res.json();
     if (!json.ok) return null;
-
     const distanceText = json.data?.rows?.[0]?.elements?.[0]?.distance?.text;
     if (!distanceText) return null;
     const km = parseFloat(distanceText.replace(" km", ""));
@@ -32,16 +30,7 @@ async function getDistanceKm(pincode: string): Promise<number | null> {
 }
 
 export default function CheckoutPage() {
-  const {
-    cart,
-    removeFromCart,
-    increaseQty,
-    decreaseQty,
-    subtotal,
-    taxTotal,
-    grandTotal,
-    clearCart,
-  } = useCart();
+  const { cart, subtotal, taxTotal, grandTotal, clearCart } = useCart();
   const { user } = useAuth();
 
   const [billing, setBilling] = useState({
@@ -66,9 +55,18 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isPaying, setIsPaying] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [failedAttempts, setFailedAttempts] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("failedAttempts");
+      return stored ? parseInt(stored) : 0;
+    }
+    return 0;
+  });
+  const [loadingMessage, setLoadingMessage] = useState("Processing...");
+  const [processingTimer, setProcessingTimer] = useState<NodeJS.Timeout | null>(
+    null
+  );
 
-  // 🚚 Dynamic shipping
   const [shippingCharge, setShippingCharge] = useState(0);
   const [shippingNotice, setShippingNotice] = useState<string | null>(null);
   const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
@@ -91,49 +89,67 @@ export default function CheckoutPage() {
       });
       tl.from(
         rightRef.current,
-        {
-          x: 40,
-          opacity: 0,
-          duration: 0.6,
-          ease: "power3.out",
-        },
+        { x: 40, opacity: 0, duration: 0.6, ease: "power3.out" },
         "-=0.45"
       );
-      tl.from(payBtnRef.current, {
-        scale: 0.9,
-        opacity: 0,
-        duration: 0.4,
-      });
+      tl.from(payBtnRef.current, { scale: 0.9, opacity: 0, duration: 0.4 });
     });
     return () => ctx.revert();
   }, []);
 
-  // 🔹 Copy billing → shipping if “Same as Billing”
   useEffect(() => {
     if (sameAsBilling) setShipping(billing);
   }, [billing, sameAsBilling]);
 
-  // ✅ Auto-calc shipping cost based on distance
+  useEffect(() => {
+    localStorage.setItem("failedAttempts", String(failedAttempts));
+  }, [failedAttempts]);
+
+  useEffect(() => {
+    const inProgress = localStorage.getItem("paymentInProgress");
+    const lastOrder = localStorage.getItem("lastRazorpayOrder");
+
+    if (inProgress && lastOrder) {
+      setIsPaying(true);
+      setLoadingMessage("Restoring payment session...");
+    } else if (inProgress && !lastOrder) {
+      localStorage.removeItem("paymentInProgress");
+      localStorage.removeItem("lastRazorpayOrder");
+
+      setIsPaying(false);
+    }
+
+    const timeout = setTimeout(() => {
+      if (
+        localStorage.getItem("paymentInProgress") &&
+        !localStorage.getItem("lastRazorpayOrder")
+      ) {
+        localStorage.removeItem("paymentInProgress");
+        localStorage.removeItem("lastRazorpayOrder");
+
+        setIsPaying(false);
+      }
+    }, 6000);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
   useEffect(() => {
     const activePincode = sameAsBilling
       ? billing.pincode.trim()
       : shipping.pincode.trim();
-
     if (!/^\d{6}$/.test(activePincode)) {
       setShippingCharge(0);
       setShippingNotice(null);
       setShippingStatus("idle");
       return;
     }
-
     const timeout = setTimeout(async () => {
       setIsCalculatingShipping(true);
       setShippingStatus("idle");
       setShippingNotice("Calculating delivery distance...");
-
       const distance = await getDistanceKm(activePincode);
       setIsCalculatingShipping(false);
-
       if (distance === null) {
         setShippingCharge(0);
         setShippingStatus("error");
@@ -142,9 +158,6 @@ export default function CheckoutPage() {
         );
         return;
       }
-
-      console.log("📏 Distance (km):", distance);
-
       if (distance <= 5) {
         setShippingCharge(0);
         setShippingNotice("✅ Free delivery within 5 km!");
@@ -181,11 +194,9 @@ export default function CheckoutPage() {
         );
       }
     }, 500);
-
     return () => clearTimeout(timeout);
   }, [sameAsBilling, billing.pincode, shipping.pincode]);
 
-  // Validation
   function validate() {
     const e: Record<string, string> = {};
     const fields = sameAsBilling ? billing : shipping;
@@ -200,12 +211,43 @@ export default function CheckoutPage() {
     return Object.keys(e).length === 0;
   }
 
-  // 🧾 Razorpay Integration
   async function handlePay() {
     if (cart.length === 0) return setErrors({ general: "Your cart is empty." });
     if (!validate()) return;
 
+    if (failedAttempts >= 3) {
+      setIsPaying(true);
+      setLoadingMessage("Redirecting...");
+      gsap.to(document.body, {
+        opacity: 0.5,
+        duration: 0.6,
+        onComplete: () => {
+          window.location.href = "/order-failed?reason=max-attempts";
+        },
+      });
+      return;
+    }
+
     setIsPaying(true);
+    setErrorMessage("");
+    setLoadingMessage("Processing...");
+    localStorage.setItem("paymentInProgress", "1");
+
+    if (processingTimer) clearInterval(processingTimer);
+
+    const messages = [
+      "Processing...",
+      "Still processing...",
+      "Don't worry, your money is safe with us ❤️",
+      "Oh no... still processing 😓",
+    ];
+    let msgIndex = 0;
+    const timer = setInterval(() => {
+      msgIndex = (msgIndex + 1) % messages.length;
+      setLoadingMessage(messages[msgIndex]);
+    }, 4000);
+    setProcessingTimer(timer);
+
     try {
       const amountInPaise = Math.round(total * 100);
       const res = await fetch("/api/razorpay/create-order", {
@@ -215,20 +257,20 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Failed to create order");
-
       const { order } = data;
 
       if (!document.getElementById("razorpay-script")) {
-        await new Promise((resolve) => {
+        await new Promise((resolve, reject) => {
           const s = document.createElement("script");
           s.id = "razorpay-script";
           s.src = "https://checkout.razorpay.com/v1/checkout.js";
           s.onload = resolve;
+          s.onerror = () => reject(new Error("Failed to load Razorpay script"));
           document.body.appendChild(s);
         });
       }
 
-      const options = {
+      const options: any = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: order.currency,
@@ -243,8 +285,13 @@ export default function CheckoutPage() {
               body: JSON.stringify(response),
             });
             const verifyData = await verifyRes.json();
-
             if (verifyData.ok) {
+              clearInterval(timer);
+              setProcessingTimer(null);
+              localStorage.removeItem("paymentInProgress");
+              localStorage.removeItem("lastRazorpayOrder");
+
+              setLoadingMessage("Finalizing your order...");
               const orderData = {
                 orderId: verifyData.orderId,
                 paymentId: response.razorpay_payment_id,
@@ -257,21 +304,18 @@ export default function CheckoutPage() {
                 createdAt: new Date().toISOString(),
                 userId: user?.uid || billing.phone || "guest",
               };
-
               await fetch("/api/orders/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(orderData),
               });
-
               await fetch("/api/products/update-stock", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ items: cart }),
               });
-
               clearCart();
-
+              setFailedAttempts(0);
               gsap.to(document.body, {
                 opacity: 0,
                 duration: 0.4,
@@ -280,20 +324,61 @@ export default function CheckoutPage() {
                 },
               });
             } else {
+              clearInterval(timer);
+              localStorage.removeItem("paymentInProgress");
+              localStorage.removeItem("lastRazorpayOrder");
+
               window.location.href = `/order-failed?reason=signature`;
             }
           } catch (err) {
             console.error("Error verifying payment:", err);
+            clearInterval(timer);
+            localStorage.removeItem("paymentInProgress");
+            localStorage.removeItem("lastRazorpayOrder");
+
             window.location.href = `/order-failed?reason=verify-error`;
+          } finally {
+            setIsPaying(false);
           }
+        },
+        modal: {
+          ondismiss: () => {
+            clearInterval(timer);
+            localStorage.removeItem("paymentInProgress");
+            localStorage.removeItem("lastRazorpayOrder");
+
+            setProcessingTimer(null);
+            setIsPaying(false);
+            setErrorMessage("Payment cancelled — you can try again.");
+            setFailedAttempts((s) => s + 1);
+          },
         },
       };
 
       // @ts-ignore
       const rzp = new window.Razorpay(options);
+      if (typeof rzp.on === "function") {
+        rzp.on("payment.failed", (err: any) => {
+          clearInterval(timer);
+          localStorage.removeItem("paymentInProgress");
+          localStorage.removeItem("lastRazorpayOrder");
+
+          setProcessingTimer(null);
+          setIsPaying(false);
+          setErrorMessage("Payment failed. Please try another method or card.");
+          setFailedAttempts((s) => s + 1);
+        });
+      }
+      localStorage.setItem("paymentInProgress", "1");
+      localStorage.setItem("lastRazorpayOrder", order.id);
+
       rzp.open();
     } catch (err: any) {
-      console.error(err);
+      clearInterval(processingTimer!);
+      localStorage.removeItem("paymentInProgress");
+      localStorage.removeItem("lastRazorpayOrder");
+
+      setProcessingTimer(null);
       setErrors({ general: err.message || "Payment failed to start." });
       setIsPaying(false);
     }
@@ -305,13 +390,10 @@ export default function CheckoutPage() {
   return (
     <>
       <Header />
-
       <main className="min-h-screen bg-linear-to-b from-white to-gray-50 p-6 md:p-12">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl md:text-4xl font-extrabold mb-6">Checkout</h1>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* LEFT: billing + shipping form */}
             <div
               ref={leftRef}
               className="md:col-span-2 bg-white rounded-2xl p-6 shadow-md"
@@ -355,7 +437,6 @@ export default function CheckoutPage() {
                     errors
                   )}
                 </div>
-
                 <h2 className="font-semibold text-lg mb-2">
                   🚚 Shipping Details
                 </h2>
@@ -367,7 +448,6 @@ export default function CheckoutPage() {
                   />
                   Same as Billing Details
                 </label>
-
                 {!sameAsBilling && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
                     {renderInput(
@@ -411,44 +491,38 @@ export default function CheckoutPage() {
                     )}
                   </div>
                 )}
-
                 {(errorMessage || errors.general) && (
                   <div className="md:col-span-2">
                     <ErrorText message={errorMessage || errors.general} />
                     <FailureProgressBar failedAttempts={failedAttempts} />
                   </div>
                 )}
-
                 <div className="mt-6">
                   <GsapButton
                     onClick={() => handlePay()}
                     loading={isPaying}
                     disabled={cart.length === 0}
                     text={`Pay ${formatCurrency(total)}`}
-                    loadingText="Processing..."
+                    loadingText={loadingMessage}
                     className="w-full py-3 rounded-xl bg-black text-white font-semibold shadow-lg hover:bg-gray-800"
                   />
                 </div>
               </form>
             </div>
-
-            {/* RIGHT: Order Summary */}
             <aside
               ref={rightRef}
               className="bg-white rounded-2xl p-6 shadow-md h-fit"
             >
               <h3 className="font-semibold text-lg mb-4">Order Summary</h3>
-
               {cart.length === 0 ? (
                 <div className="text-sm text-gray-500">Your cart is empty.</div>
               ) : (
                 <div className="space-y-4">
                   {cart.map((it) => {
-                    const gstRate = it.gst?.total ?? 0; // e.g. 12 for 12%
+                    const gstRate = it.gst?.total ?? 0;
                     const gstAmountPerItem = (it.price * gstRate) / 100;
                     const finalPrice = it.price + gstAmountPerItem;
                     const lineTotal = finalPrice * it.qty;
-
                     return (
                       <div
                         key={`${it.id}-${it.color || "default"}-${
@@ -477,13 +551,9 @@ export default function CheckoutPage() {
                                   </span>
                                 )}
                               </p>
-
-                              {/* ✅ Base price (pre-GST from Firebase) */}
                               <p className="text-xs text-gray-500 mt-1">
                                 Base: {formatCurrency(it.price)} × {it.qty}
                               </p>
-
-                              {/* Small tax info line */}
                               {gstRate > 0 && (
                                 <p className="text-[11px] text-gray-400 mt-0.5">
                                   GST: {gstRate}% ({it.gst?.cgst ?? 0}% +{" "}
@@ -491,8 +561,6 @@ export default function CheckoutPage() {
                                 </p>
                               )}
                             </div>
-
-                            {/* ✅ Final price including GST */}
                             <span className="text-sm font-medium text-gray-800">
                               {formatCurrency(lineTotal)}
                             </span>
@@ -503,24 +571,19 @@ export default function CheckoutPage() {
                   })}
                 </div>
               )}
-
-              {/* Totals section */}
               <div className="mt-6 border-t pt-4 space-y-1">
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Subtotal</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
-
                 {taxTotal > 0 && (
                   <div className="flex justify-between text-sm text-gray-600">
                     <span>GST</span>
                     <span>{formatCurrency(taxTotal)}</span>
                   </div>
                 )}
-
                 <div className="flex justify-between text-sm text-gray-600 items-center">
                   <span>Shipping</span>
-
                   {isCalculatingShipping ? (
                     <span className="flex items-center gap-2 text-gray-500 text-xs">
                       <svg
@@ -536,7 +599,7 @@ export default function CheckoutPage() {
                           r="10"
                           stroke="currentColor"
                           strokeWidth="4"
-                        ></circle>
+                        />
                         <path
                           className="opacity-75"
                           fill="currentColor"
@@ -551,7 +614,6 @@ export default function CheckoutPage() {
                     </span>
                   )}
                 </div>
-
                 {shippingNotice && (
                   <p
                     className={`text-xs mt-2 transition-all duration-300 ${
@@ -567,14 +629,12 @@ export default function CheckoutPage() {
                     {shippingNotice}
                   </p>
                 )}
-
                 {discount > 0 && (
                   <div className="flex justify-between text-sm text-green-700">
                     <span>Discount</span>
                     <span>-{formatCurrency(discount)}</span>
                   </div>
                 )}
-
                 <div className="flex justify-between font-semibold text-lg pt-2">
                   <span>Total</span>
                   <span>{formatCurrency(total)}</span>
@@ -584,7 +644,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </main>
-
       <Footer />
     </>
   );
@@ -601,13 +660,24 @@ function FailureProgressBar({ failedAttempts }: { failedAttempts: number }) {
       ease: "power2.out",
     });
   }, [failedAttempts]);
+  if (failedAttempts === 0) return null;
   return (
-    <div className="mt-2 w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-      <div
-        ref={barRef}
-        className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full"
-        style={{ width: "0%" }}
-      />
+    <div className="mt-3">
+      <div className="flex justify-between text-xs text-gray-500 mb-1">
+        <span>Payment attempts: {failedAttempts}/3</span>
+        {failedAttempts >= 3 && (
+          <span className="text-red-600 font-medium">
+            Too many failed attempts!
+          </span>
+        )}
+      </div>
+      <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div
+          ref={barRef}
+          className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full"
+          style={{ width: "0%" }}
+        />
+      </div>
     </div>
   );
 }
