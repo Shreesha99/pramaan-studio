@@ -162,12 +162,27 @@ export default function ProductsPage() {
     const color = hasColors ? selectedClr : "default";
     const variant = hasColors ? p.variants?.[color] : null;
 
-    // determine stock
-    let availableStock = 0;
-    if (variant?.sizes) {
-      availableStock = selectedSz ? variant.sizes[selectedSz] ?? 0 : 0;
+    // 🧾 Determine stock
+    let availableStock: number | null = 0;
+
+    if (hasColors && selectedClr) {
+      // ✅ Color selected → variant-level stock
+      if (variant?.sizes) {
+        if (selectedSz) {
+          availableStock = variant.sizes[selectedSz] ?? 0;
+        } else {
+          const sizeValues = Object.values(variant.sizes || {}) as number[];
+          availableStock = sizeValues.reduce((a, b) => a + (b || 0), 0);
+        }
+      } else {
+        availableStock = variant?.stock ?? 0;
+      }
+    } else if (!hasColors) {
+      // ✅ No colors → use base product stock
+      availableStock = p.stock ?? 0;
     } else {
-      availableStock = hasColors ? variant?.stock ?? 0 : p.stock ?? 0;
+      // ✅ Has colors but no color selected yet → "not determined"
+      availableStock = null;
     }
 
     const image = hasColors ? variant?.images?.[0] : p.images?.[0];
@@ -189,6 +204,11 @@ export default function ProductsPage() {
       showToast("Select a size first.", "info");
       return;
     }
+    if (availableStock === null) {
+      showToast("Select a color to view stock first.", "info");
+      return;
+    }
+
     if (availableStock <= 0) {
       showToast("Out of stock.", "error");
       return;
@@ -196,7 +216,7 @@ export default function ProductsPage() {
 
     const existing = getCartItem(p.id, color, selectedSz);
     if (existing) {
-      if (existing.qty >= availableStock) {
+      if (existing.qty >= (availableStock ?? 0)) {
         showToast(`Only ${availableStock} available.`, "info");
         gsap.fromTo(
           `#qty-${p.id}-${color}-${selectedSz}`,
@@ -377,26 +397,39 @@ export default function ProductsPage() {
                 const color =
                   selectedColor[p.id] ||
                   (hasColors ? Object.keys(p.variants)[0] : "default");
-                const variant = hasColors ? p.variants[color] : null;
-                const images = hasColors
-                  ? variant?.images || []
-                  : p.images || [];
+                const variant =
+                  hasColors && selectedColor[p.id]
+                    ? p.variants[selectedColor[p.id]]
+                    : null;
+                const images =
+                  hasColors && selectedColor[p.id]
+                    ? variant?.images || []
+                    : p.images || [];
                 const activeIndex = activeImageIndex[p.id] ?? 0;
                 const displayImg = images.length > 0 ? images[activeIndex] : "";
                 const gst = p?.gst?.total ?? 0;
                 const finalPrice = p.price + (p.price * gst) / 100;
 
-                // stock
+                // 🧾 Stock calculation
                 let availableStock = 0;
-                if (variant?.sizes) {
-                  if (selectedSize[p.id])
-                    availableStock = variant.sizes[selectedSize[p.id]] ?? 0;
-                  else
-                    availableStock = Object.values(
-                      variant.sizes as Record<string, number>
-                    ).reduce((a, b) => a + (b || 0), 0);
+
+                if (hasColors && selectedColor[p.id]) {
+                  // ✅ A color is selected → check variant-level stock
+                  if (variant?.sizes) {
+                    if (selectedSize[p.id]) {
+                      availableStock = variant.sizes[selectedSize[p.id]] ?? 0;
+                    } else {
+                      // sum of all sizes in that color
+                      availableStock = Object.values(
+                        variant.sizes as Record<string, number>
+                      ).reduce((a, b) => a + (b || 0), 0);
+                    }
+                  } else {
+                    availableStock = variant?.stock ?? 0;
+                  }
                 } else {
-                  availableStock = variant?.stock ?? p.stock ?? 0;
+                  // ✅ No color selected → show base product stock
+                  availableStock = p.stock ?? 0;
                 }
 
                 const item = getCartItem(p.id, color, selectedSize[p.id]);
@@ -492,7 +525,9 @@ export default function ProductsPage() {
                                 : "text-red-500"
                             }`}
                           >
-                            {availableStock > 0
+                            {hasColors && !selectedColor[p.id]
+                              ? "Select a color to view stock"
+                              : availableStock > 0
                               ? `In Stock: ${availableStock}`
                               : "Out of Stock"}
                           </p>
@@ -562,8 +597,16 @@ export default function ProductsPage() {
                       </div>
 
                       {/* --- Bottom Row: Cart Actions (centered horizontally) --- */}
+                      {/* --- Bottom Row: Cart Actions --- */}
                       <div className="mt-5 flex justify-center sm:justify-between items-center">
-                        {availableStock === 0 ? (
+                        {p.hasColors && !selectedColor[p.id] ? (
+                          <button
+                            disabled
+                            className="px-6 py-2 bg-gray-300 text-gray-600 rounded-full text-sm font-medium cursor-not-allowed"
+                          >
+                            Select a Color
+                          </button>
+                        ) : availableStock !== null && availableStock <= 0 ? (
                           <span className="text-red-500 font-semibold text-sm">
                             Out of Stock
                           </span>

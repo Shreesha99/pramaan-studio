@@ -1,6 +1,8 @@
 "use client";
 
 import GsapButton from "@/components/GsapButton";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function EditProductModal({
   editingProduct,
@@ -12,9 +14,30 @@ export default function EditProductModal({
   categories,
   handleUpdateProduct,
 }: any) {
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+
+  // 🧩 Generate local previews when files selected
+  useEffect(() => {
+    if (!editFiles || (editFiles as FileList).length === 0) return;
+
+    const files = Array.from(editFiles as FileList);
+    const urls = files.map((file: File) => URL.createObjectURL(file));
+
+    setPreviewImages(urls);
+
+    // cleanup to prevent memory leaks
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [editFiles]);
+
+  // 🖼 Combine existing images + new previews
+  const allImages = [
+    ...(editingProduct.images || []),
+    ...(previewImages || []),
+  ];
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl shadow-xl w-[400px]">
+      <div className="bg-white p-6 rounded-xl shadow-xl w-[400px] max-h-[95vh] overflow-y-auto">
         <h2 className="text-lg font-semibold mb-4 text-center">Edit Product</h2>
 
         {/* 🏷 Product Name */}
@@ -163,6 +186,38 @@ export default function EditProductModal({
         >
           📁 Choose Product Images
         </label>
+
+        {/* 🖼 Image Preview + Count */}
+        {allImages.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-gray-700">
+                Total Images: {allImages.length}
+              </p>
+              {previewImages.length > 0 && (
+                <p className="text-xs text-gray-500">
+                  ({previewImages.length} new)
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {allImages.map((img, i) => (
+                <div
+                  key={i}
+                  className="relative w-[70px] h-[70px] rounded-md overflow-hidden border border-gray-200"
+                >
+                  <Image
+                    src={img}
+                    alt={`Product ${i}`}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 📂 Category */}
         <select
