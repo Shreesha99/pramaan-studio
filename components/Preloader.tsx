@@ -83,7 +83,7 @@ export default function Preloader() {
   return (
     <div
       ref={wrapperRef}
-      className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-white"
+      className="fixed inset-0 z-99999 flex flex-col items-center justify-center bg-white"
     >
       {/* ✅ Logo */}
       <img
@@ -122,7 +122,7 @@ export default function Preloader() {
       {/* ✅ Gradient fill bar */}
       <div
         ref={fillRef}
-        className="absolute bottom-0 left-0 h-[4px] w-full bg-gradient-to-r from-black to-gray-400 scale-x-0"
+        className="absolute bottom-0 left-0 h-1 w-full bg-linear-to-r from-black to-gray-400 scale-x-0"
       />
     </div>
   );

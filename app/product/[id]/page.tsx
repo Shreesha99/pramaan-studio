@@ -264,7 +264,7 @@ export default function ProductPage() {
                     <button
                       key={sz}
                       onClick={() => setSelectedSize(sz)}
-                      className={`px-4 py-[6px] text-sm rounded-full border transition-all ${
+                      className={`px-4 py-1.5 text-sm rounded-full border transition-all ${
                         selectedSize === sz
                           ? "bg-black text-white border-black"
                           : "border-gray-300 text-gray-700 hover:bg-gray-200"

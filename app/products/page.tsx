@@ -509,7 +509,7 @@ export default function ProductsPage() {
                             {p.name}
                           </h3>
                           {p.featured && (
-                            <span className="inline-block mt-1 text-[12px] text-yellow-700 font-medium bg-yellow-50 px-2 py-[1px] rounded-full">
+                            <span className="inline-block mt-1 text-[12px] text-yellow-700 font-medium bg-yellow-50 px-2 py-px rounded-full">
                               ⭐ Featured
                             </span>
                           )}
@@ -589,7 +589,7 @@ export default function ProductsPage() {
                                     [p.id]: sz,
                                   }))
                                 }
-                                className={`px-3 py-[4px] text-xs rounded-full border transition-all ${
+                                className={`px-3 py-1 text-xs rounded-full border transition-all ${
                                   selectedSize[p.id] === sz
                                     ? "bg-black text-white border-black shadow-sm"
                                     : "border-gray-300 text-gray-700 hover:bg-black hover:text-white"
