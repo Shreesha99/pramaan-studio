@@ -47,7 +47,7 @@ export default function OrderSuccessClient() {
         <p className="mt-1">
           💬 WhatsApp:{" "}
           <a
-            href="https://wa.me/919738960564?text=Hi%20I%20need%20help%20with%20an%20order%20I%20placed!"
+            href="https://wa.me/916360182863?text=Hi%20I%20need%20help%20with%20an%20order%20I%20placed!"
             target="_blank"
             rel="noopener noreferrer"
             className="text-black font-medium hover:underline"

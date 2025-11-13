@@ -137,7 +137,7 @@ export default function FloatingWhatsApp() {
             className="mt-4 w-full bg-[#25D366] text-white font-semibold py-2 rounded-full hover:bg-[#1ebe5d] transition"
             onClick={() =>
               window.open(
-                "https://wa.me/919738960564?text=Hi%20I%20need%20customization%20of%20a%20product%20from%20your%20website!",
+                "https://wa.me/916360182863?text=Hi%20I%20need%20customization%20of%20a%20product%20from%20your%20website!",
                 "_blank"
               )
             }
