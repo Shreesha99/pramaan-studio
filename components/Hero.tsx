@@ -356,7 +356,7 @@ export default function Hero() {
       style={{ height: "calc(var(--vh, 1vh) * 100)" }}
     >
       {/* Custom Black Cursor (visible on all sizes; acts as cursor inside section) */}
-      <div
+      {/* <div
         ref={cursorRef}
         className="hero-cursor fixed z-70 top-0 left-0 h-20 w-auto bg-black text-white 
              flex items-center justify-center 
@@ -391,7 +391,7 @@ export default function Hero() {
             />
           </svg>
         </div>
-      </div>
+      </div> */}
 
       {/* 🔥 Scrolling Strip */}
       <div className="absolute top-0 left-0 w-full bg-black text-white py-3 sm:py-4 overflow-hidden z-6 shadow-md">
