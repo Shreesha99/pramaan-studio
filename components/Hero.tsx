@@ -431,7 +431,7 @@ export default function Hero() {
         {heroImages.map((src, i) => (
           <div
             key={i}
-            className="panel relative h-full overflow-hidden flex-shrink-0"
+            className="panel relative h-full overflow-hidden shrink-0"
           >
             <Image
               src={src}

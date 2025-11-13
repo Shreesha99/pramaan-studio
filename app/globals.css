@@ -75,3 +75,8 @@ main {
   scrollbar-color: #000000 #ffffff;
   /* thumb = black, track = white */
 }
+
+.hero-cursor,
+.hero-cursor * {
+  pointer-events: none !important;
+}

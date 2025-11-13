@@ -192,13 +192,19 @@ export default function ProductManager() {
 
       if (editFiles && editFiles.length > 0) {
         const urls: string[] = [];
-        for (const file of Array.from(editFiles)) {
-          const path = `products/${editingProduct.id}/main/${file.name}`;
+        for (let i = 0; i < editFiles.length; i++) {
+          const file = editFiles.item(i);
+          if (!file) continue;
+
+          const uniqueName = `${Date.now()}-${Math.random()}-${file.name}`;
+          const path = `products/${editingProduct.id}/main/${uniqueName}`;
+
           const storageRef = ref(storage, path);
           await uploadBytes(storageRef, file);
           const url = await getDownloadURL(storageRef);
           urls.push(url);
         }
+
         uploadedUrls = urls;
       }
 
@@ -306,9 +312,14 @@ export default function ProductManager() {
     try {
       setUploading(true);
       const uploadedUrls: string[] = [];
-      for (const file of Array.from(files)) {
-        const path = `products/${activeProduct.id}/${colorName}/${file.name}`;
+      for (let i = 0; i < files.length; i++) {
+        const file = files.item(i);
+        if (!file) continue;
+
+        const uniqueName = `${Date.now()}-${Math.random()}-${file.name}`;
+        const path = `products/${activeProduct.id}/${colorName}/${uniqueName}`;
         const storageRef = ref(storage, path);
+
         await uploadBytes(storageRef, file);
         const url = await getDownloadURL(storageRef);
         uploadedUrls.push(url);

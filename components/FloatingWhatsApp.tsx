@@ -99,7 +99,7 @@ export default function FloatingWhatsApp() {
       {showGuide && (
         <div
           ref={guideGroupRef}
-          className="fixed bottom-[100px] right-[-10px] z-[9999] flex flex-col items-center"
+          className="fixed bottom-[100px] -right-2.5 z-9999 flex flex-col items-center"
         >
           <div
             ref={bubbleRef}
@@ -125,7 +125,7 @@ export default function FloatingWhatsApp() {
       {openChat && (
         <div
           ref={chatBubbleRef}
-          className="fixed bottom-28 right-6 w-64 bg-white rounded-2xl shadow-xl p-4 border border-gray-200 z-[9999]"
+          className="fixed bottom-28 right-6 w-64 bg-white rounded-2xl shadow-xl p-4 border border-gray-200 z-9999"
         >
           <p className="text-gray-800 text-sm font-medium">
             Hi! 👋
@@ -135,7 +135,12 @@ export default function FloatingWhatsApp() {
 
           <button
             className="mt-4 w-full bg-[#25D366] text-white font-semibold py-2 rounded-full hover:bg-[#1ebe5d] transition"
-            onClick={() => window.open("https://wa.me/919606239247", "_blank")}
+            onClick={() =>
+              window.open(
+                "https://wa.me/919738960564?text=Hi%20I%20need%20customization%20of%20a%20product%20from%20your%20website!",
+                "_blank"
+              )
+            }
           >
             Chat with us
           </button>
@@ -145,7 +150,7 @@ export default function FloatingWhatsApp() {
       {/* WhatsApp Floating Button */}
       <div
         ref={iconRef}
-        className="fixed bottom-6 right-6 z-[9999] cursor-pointer"
+        className="fixed bottom-6 right-6 z-9999 cursor-pointer"
         onClick={() => setOpenChat((prev) => !prev)}
       >
         <div className="bg-[#25D366] w-16 h-16 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform">

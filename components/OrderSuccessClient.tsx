@@ -38,16 +38,16 @@ export default function OrderSuccessClient() {
         <p className="mt-1">
           📩 Email us at{" "}
           <a
-            href="mailto:help@pramaanstudio.com"
+            href="mailto:pmps9779@gmail.com"
             className="text-black font-medium hover:underline"
           >
-            help@pramaanstudio.com
+            pmps9779@gmail.com
           </a>
         </p>
         <p className="mt-1">
           💬 WhatsApp:{" "}
           <a
-            href="https://wa.me/919876543210"
+            href="https://wa.me/919738960564?text=Hi%20I%20need%20help%20with%20an%20order%20I%20placed!"
             target="_blank"
             rel="noopener noreferrer"
             className="text-black font-medium hover:underline"
