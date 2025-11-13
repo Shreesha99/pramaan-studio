@@ -85,10 +85,10 @@ export default function Header() {
               <Image
                 src="/assets/img/logo.jpg"
                 alt="PraMaan Logo"
-                width={36}
-                height={36}
+                width={40}
+                height={40}
                 priority
-                className="w-16 h-16 object-contain"
+                className="w-20 h-20 object-contain"
               />
               {/* <span className="hidden md:inline text-xl tracking-tight">
                 PraMaan

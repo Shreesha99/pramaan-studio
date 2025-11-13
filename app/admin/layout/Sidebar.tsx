@@ -6,6 +6,7 @@ const items = [
   { label: "Products", href: "/admin/products" },
   { label: "Orders", href: "/admin/orders" },
   { label: "Customers", href: "/admin/customers" },
+  { label: "Manual order", href: "/admin/manual-order" },
 ];
 
 export default function Sidebar() {
