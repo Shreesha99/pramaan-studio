@@ -37,7 +37,7 @@ export default function CheckoutPage() {
     name: "",
     address: "",
     city: "",
-    state: "",
+    state: "Karnataka",
     pincode: "",
     phone: "",
   });
@@ -46,7 +46,7 @@ export default function CheckoutPage() {
     name: "",
     address: "",
     city: "",
-    state: "",
+    state: "Karnataka",
     pincode: "",
     phone: "",
   });
@@ -416,7 +416,7 @@ export default function CheckoutPage() {
                     billing,
                     setBilling,
                     errors,
-                    "9876543210"
+                    "9738960564"
                   )}
                   {renderInput(
                     "Address",
@@ -674,7 +674,7 @@ function FailureProgressBar({ failedAttempts }: { failedAttempts: number }) {
       <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
         <div
           ref={barRef}
-          className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full"
+          className="h-full bg-linear-to-r from-red-400 to-red-600 rounded-full"
           style={{ width: "0%" }}
         />
       </div>
@@ -691,16 +691,72 @@ function renderInput(
   placeholder = "",
   full = false
 ) {
+  // STATE — LOCKED
+  if (field === "state") {
+    return (
+      <div className={full ? "md:col-span-2" : ""}>
+        <label className="block text-sm font-medium">{label}</label>
+        <input
+          value={data.state}
+          disabled
+          className="mt-1 block w-full rounded-md border px-3 py-2 bg-gray-100 text-gray-500 cursor-not-allowed"
+        />
+      </div>
+    );
+  }
+
+  const KARNATAKA_CITIES = [
+    "Bengaluru",
+    "Mysuru",
+    "Mangaluru",
+    "Hubballi",
+    "Dharwad",
+    "Belagavi",
+    "Shivamogga",
+    "Tumakuru",
+    "Udupi",
+    "Ballari",
+    "Davanagere",
+    "Hassan",
+  ];
+
+  // CITY — DROPDOWN
+  if (field === "city") {
+    return (
+      <div className={full ? "md:col-span-2" : ""}>
+        <label className="block text-sm font-medium">{label}</label>
+        <select
+          value={data.city}
+          onChange={(e) => setData((s) => ({ ...s, city: e.target.value }))}
+          className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black ${
+            errors.city ? "border-red-400" : "border-gray-200"
+          }`}
+        >
+          <option value="">Select a city</option>
+          {KARNATAKA_CITIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        {errors.city && (
+          <p className="text-xs text-red-500 mt-1">{errors.city}</p>
+        )}
+      </div>
+    );
+  }
+
+  // NORMAL INPUTS
   return (
     <div className={full ? "md:col-span-2" : ""}>
       <label className="block text-sm font-medium">{label}</label>
       <input
         value={data[field]}
         onChange={(e) => setData((s) => ({ ...s, [field]: e.target.value }))}
+        placeholder={placeholder}
         className={`mt-1 block w-full rounded-md border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black ${
           errors[field] ? "border-red-400" : "border-gray-200"
         }`}
-        placeholder={placeholder}
       />
       {errors[field] && (
         <p className="text-xs text-red-500 mt-1">{errors[field]}</p>

@@ -8,6 +8,7 @@ import GlobalAuthModal from "@/components/GlobalAuthModal";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import ScrollToTop from "@/components/ScrollToTop";
 import Preloader from "@/components/Preloader";
+import ClientCartWrapper from "@/app/providers/ClientCartWrapper";
 import FloatingCheckoutButton from "@/components/FloatingCheckoutButton";
 
 const poppins = Poppins({
@@ -36,6 +37,7 @@ export default function RootLayout({
               <LenisProvider>
                 <Preloader />
                 {children}
+                <ClientCartWrapper />
                 <FloatingCheckoutButton />
                 <GlobalAuthModal />
                 <FloatingWhatsApp />

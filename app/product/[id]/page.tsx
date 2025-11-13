@@ -22,8 +22,15 @@ export default function ProductPage() {
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  const { cart, addToCart, increaseQty, decreaseQty, removeFromCart } =
-    useCart();
+  const {
+    cart,
+    addToCart,
+    increaseQty,
+    decreaseQty,
+    removeFromCart,
+    setIsCartOpen,
+  } = useCart();
+
   const { showToast } = useToast();
   const { user, openAuthModal } = useAuth();
 
@@ -171,14 +178,20 @@ export default function ProductPage() {
           {/* ✅ Left: Product Images */}
           <div className="p-6 border-r flex flex-col items-center justify-center">
             <div className="relative w-full h-[460px] border rounded-xl overflow-hidden bg-white shadow-sm">
-              <Image
-                src={activeImg}
-                alt={product.name}
-                fill
-                sizes="400px"
-                className="object-cover"
-                unoptimized
-              />
+              {activeImg ? (
+                <Image
+                  src={activeImg}
+                  alt={product.name}
+                  fill
+                  className="object-cover"
+                  sizes="400px"
+                  unoptimized
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500">
+                  No Image
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 mt-4 flex-wrap justify-center">
@@ -266,7 +279,8 @@ export default function ProductPage() {
 
             {/* 🛒 Cart Controls */}
             {currentQtyInCart > 0 ? (
-              <div className="mt-8 flex flex-col gap-5">
+              <div className="mt-8 flex flex-col gap-6">
+                {/* Qty Controls */}
                 <div className="flex items-center gap-5">
                   <button
                     onClick={handleDecrease}
@@ -274,15 +288,18 @@ export default function ProductPage() {
                   >
                     –
                   </button>
+
                   <span className="text-lg font-medium w-6 text-center">
                     {currentQtyInCart}
                   </span>
+
                   <button
                     onClick={handleAdd}
                     className="w-10 h-10 border rounded-full flex items-center justify-center text-xl font-semibold hover:bg-gray-100"
                   >
                     +
                   </button>
+
                   <button
                     onClick={handleRemove}
                     className="ml-3 text-gray-500 hover:text-red-600 transition-all"
@@ -291,6 +308,14 @@ export default function ProductPage() {
                     <TrashIcon className="w-6 h-6" />
                   </button>
                 </div>
+
+                {/* ⭐ GO TO CART BUTTON (opens drawer) */}
+                <button
+                  onClick={() => setIsCartOpen(true)}
+                  className="w-fit px-8 py-3 rounded-full bg-black text-white font-medium hover:bg-gray-900 transition-all"
+                >
+                  Go to Cart
+                </button>
               </div>
             ) : (
               <button

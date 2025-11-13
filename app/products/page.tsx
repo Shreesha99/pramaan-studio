@@ -24,8 +24,14 @@ import CustomCursor from "@/components/CustomCursor";
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { cart, addToCart, removeFromCart, increaseQty, decreaseQty } =
-    useCart();
+  const {
+    cart,
+    addToCart,
+    removeFromCart,
+    increaseQty,
+    decreaseQty,
+    setIsCartOpen,
+  } = useCart();
   const { showToast } = useToast();
   const { user, openAuthModal } = useAuth();
 
@@ -596,9 +602,8 @@ export default function ProductsPage() {
                         )}
                       </div>
 
-                      {/* --- Bottom Row: Cart Actions (centered horizontally) --- */}
                       {/* --- Bottom Row: Cart Actions --- */}
-                      <div className="mt-5 flex justify-center sm:justify-between items-center">
+                      <div className="mt-5 flex flex-col sm:flex-row justify-center sm:justify-between items-center gap-4">
                         {p.hasColors && !selectedColor[p.id] ? (
                           <button
                             disabled
@@ -618,39 +623,63 @@ export default function ProductsPage() {
                             Add to Cart
                           </button>
                         ) : (
-                          <div className="flex items-center gap-3 relative">
-                            <button
-                              onClick={() =>
-                                decreaseQty(item.id, color, selectedSize[p.id])
-                              }
-                              className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-lg font-semibold hover:bg-gray-100"
-                            >
-                              −
-                            </button>
-                            <span
-                              id={`qty-${p.id}-${color}-${selectedSize[p.id]}`}
-                              className="w-8 text-center font-semibold text-sm"
-                            >
-                              {item.qty}
-                            </span>
-                            <button
-                              onClick={() => handleAddToCart(p)}
-                              className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-lg font-semibold hover:bg-gray-100"
-                            >
-                              +
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleRemoveFromCart(
-                                  p.id,
-                                  p.name,
-                                  color,
+                          <div className="flex items-center gap-4">
+                            {/* QTY + REMOVE GROUP */}
+                            <div className="flex items-center gap-3">
+                              {/* - */}
+                              <button
+                                onClick={() =>
+                                  decreaseQty(
+                                    item.id,
+                                    color,
+                                    selectedSize[p.id]
+                                  )
+                                }
+                                className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-lg font-semibold hover:bg-gray-100"
+                              >
+                                −
+                              </button>
+
+                              {/* quantity */}
+                              <span
+                                id={`qty-${p.id}-${color}-${
                                   selectedSize[p.id]
-                                )
-                              }
-                              className="absolute -right-10 w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 hover:bg-red-100"
+                                }`}
+                                className="w-8 text-center font-semibold text-sm"
+                              >
+                                {item.qty}
+                              </span>
+
+                              {/* + */}
+                              <button
+                                onClick={() => handleAddToCart(p)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-lg font-semibold hover:bg-gray-100"
+                              >
+                                +
+                              </button>
+
+                              {/* DELETE BUTTON — FIXED (NO ABSOLUTE) */}
+                              <button
+                                onClick={() =>
+                                  handleRemoveFromCart(
+                                    p.id,
+                                    p.name,
+                                    color,
+                                    selectedSize[p.id]
+                                  )
+                                }
+                                className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 hover:bg-red-100 ml-3 text-gray-500 hover:text-red-600 transition-all"
+                              >
+                                <TrashIcon className="w-4 h-4 text-red-500" />
+                              </button>
+                            </div>
+
+                            {/* ⭐ OPEN CART DRAWER BUTTON */}
+                            <button
+                              onClick={() => setIsCartOpen(true)}
+                              className="px-5 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-gray-900 transition-all whitespace-nowrap"
                             >
-                              <TrashIcon className="w-4 h-4 text-red-500" />
+                              Go to Cart
                             </button>
                           </div>
                         )}

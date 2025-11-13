@@ -88,7 +88,7 @@ export default function Header() {
                 width={36}
                 height={36}
                 priority
-                className="w-20 h-20 object-contain"
+                className="w-16 h-16 object-contain"
               />
               {/* <span className="hidden md:inline text-xl tracking-tight">
                 PraMaan
