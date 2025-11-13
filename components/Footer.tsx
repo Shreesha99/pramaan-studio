@@ -91,7 +91,7 @@ export default function Footer() {
             </li>
             <li>
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/pramaan_print_studio/"
                 target="_blank"
                 className="hover:text-black"
               >

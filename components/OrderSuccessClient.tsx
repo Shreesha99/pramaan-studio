@@ -58,7 +58,7 @@ export default function OrderSuccessClient() {
         <p className="mt-1">
           📷 Instagram:{" "}
           <a
-            href="https://instagram.com/pramaan.studio"
+            href="https://www.instagram.com/pramaan_print_studio/"
             target="_blank"
             rel="noopener noreferrer"
             className="text-black font-medium hover:underline"
