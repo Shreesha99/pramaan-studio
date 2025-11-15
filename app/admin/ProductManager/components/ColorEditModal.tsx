@@ -1,8 +1,13 @@
-// app/admin/ProductManager/components/ColorEditModal.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import GsapButton from "@/components/GsapButton";
-import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
+import {
+  getDownloadURL,
+  getStorage,
+  ref,
+  uploadBytes,
+  deleteObject,
+} from "firebase/storage";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -15,52 +20,36 @@ export default function ColorEditModal({
   handleAddSizeToVariant,
   handleUpdateVariantSize,
   handleDeleteSizeFromVariant,
+
+  // NEW HANDLERS passed from ProductManager
+  handleUpdateColorMeta,
+  handleDeleteVariantImage,
+  handleAddVariantImages,
 }: any) {
   if (!editingColorVariant) return null;
   const { product, color } = editingColorVariant;
+
   const prod = products.find((p: any) => p.id === product.id) || product;
   const variant = prod.variants?.[color] || {};
-  const [uploading, setUploading] = useState(false);
+
   const [files, setFiles] = useState<FileList | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  // NEW STATE for color editing
+  const [newColorName, setNewColorName] = useState(color);
+  const [hex, setHex] = useState(variant.hex || "#000000");
+
   const [newSizeInput, setNewSizeInput] = useState("");
 
-  // small helper to update variant images (append)
+  // KEEP your upload logic the same → but now use handleAddVariantImages
   const handleUploadImages = async () => {
     if (!files || files.length === 0) return;
-    try {
-      setUploading(true);
-      const urls: string[] = [];
-      for (const f of Array.from(files)) {
-        // upload to storage path products/{id}/{color}/{name}
-        const path = `products/${prod.id}/${color}/${f.name}`;
-        const storageRef = ref(getStorage(), path);
-        await uploadBytes(storageRef, f);
-        const url = await getDownloadURL(storageRef);
-        urls.push(url);
-      }
+    setUploading(true);
 
-      const updVariants = {
-        ...prod.variants,
-        [color]: {
-          ...variant,
-          images: [...(variant.images || []), ...urls],
-        },
-      };
+    await handleAddVariantImages(prod.id, color, files);
 
-      await updateDoc(doc(db, "products", prod.id), { variants: updVariants });
-      setProducts((prev: any) =>
-        prev.map((p: any) =>
-          p.id === prod.id ? { ...p, variants: updVariants } : p
-        )
-      );
-      setFiles(null);
-      showToast("Images uploaded", "success");
-    } catch (err) {
-      console.error(err);
-      showToast("Failed upload", "error");
-    } finally {
-      setUploading(false);
-    }
+    setFiles(null);
+    setUploading(false);
   };
 
   return (
@@ -70,16 +59,66 @@ export default function ColorEditModal({
           Edit {color} — {prod.name}
         </h3>
 
+        {/* ---------------- COLOR META EDIT ---------------- */}
+        <div className="mb-6">
+          <h4 className="text-sm font-semibold mb-2">Color Details</h4>
+
+          <div className="flex gap-3 mb-3">
+            <div className="flex-1">
+              <label className="text-xs">Color Name</label>
+              <input
+                type="text"
+                value={newColorName}
+                onChange={(e) => setNewColorName(e.target.value)}
+                className="w-full px-2 py-1 border rounded text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs">Hex</label>
+              <input
+                type="color"
+                value={hex}
+                onChange={(e) => setHex(e.target.value)}
+                className="h-10 w-16 border rounded"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              handleUpdateColorMeta(prod.id, color, newColorName, hex);
+              setEditingColorVariant(null);
+            }}
+            className="px-4 py-2 bg-black text-white rounded text-sm"
+          >
+            Save Color Details
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* ---------------- IMAGES ---------------- */}
           <div>
             <p className="text-xs text-gray-600 mb-2">Images</p>
+
             <div className="grid grid-cols-3 gap-2">
               {(variant.images || []).map((img: string, idx: number) => (
-                <div key={idx} className="relative">
+                <div key={idx} className="relative group">
                   <img src={img} className="w-full h-20 object-cover rounded" />
+
+                  {/* DELETE BUTTON */}
+                  <button
+                    onClick={() =>
+                      handleDeleteVariantImage(prod.id, color, img)
+                    }
+                    className="absolute top-1 right-1 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition"
+                  >
+                    ✕
+                  </button>
                 </div>
               ))}
             </div>
+
             <input
               type="file"
               multiple
@@ -88,15 +127,18 @@ export default function ColorEditModal({
               className="hidden"
               id="color-edit-images"
             />
+
             <label
               htmlFor="color-edit-images"
               className="block mt-3 text-sm border-2 border-dashed py-2 rounded text-center cursor-pointer"
             >
               📁 Choose Images
             </label>
+
             {files && (
               <p className="text-xs mt-2">{files.length} file(s) selected</p>
             )}
+
             <div className="mt-3 flex gap-2">
               <button
                 onClick={() => setEditingColorVariant(null)}
@@ -104,6 +146,7 @@ export default function ColorEditModal({
               >
                 Close
               </button>
+
               <GsapButton
                 onClick={handleUploadImages}
                 loading={uploading}
@@ -115,8 +158,10 @@ export default function ColorEditModal({
             </div>
           </div>
 
+          {/* ---------------- SIZES ---------------- */}
           <div>
             <p className="text-xs text-gray-600 mb-2">Sizes</p>
+
             <div className="flex gap-2 mb-2">
               <input
                 type="text"

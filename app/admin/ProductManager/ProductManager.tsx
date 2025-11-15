@@ -167,6 +167,146 @@ export default function ProductManager() {
     }
   };
 
+  // ✏️ Update Color Name & Hex
+  const handleUpdateColorMeta = async (
+    productId: string,
+    oldColor: string,
+    newName: string,
+    newHex: string
+  ) => {
+    try {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
+
+      const oldVariant = product.variants?.[oldColor];
+      if (!oldVariant) return;
+
+      // Re-map variant
+      const updatedVariants = {
+        ...product.variants,
+      };
+      delete updatedVariants[oldColor];
+
+      updatedVariants[newName] = {
+        ...oldVariant,
+        hex: newHex, // store hex inside variant
+      };
+
+      await updateDoc(doc(db, "products", productId), {
+        variants: updatedVariants,
+      });
+
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId ? { ...p, variants: updatedVariants } : p
+        )
+      );
+
+      showToast("Color updated successfully!", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to update color.", "error");
+    }
+  };
+
+  // ➕ Add new images to variant
+  const handleAddVariantImages = async (
+    productId: string,
+    color: string,
+    files: FileList
+  ) => {
+    if (!files || files.length === 0) return;
+
+    try {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
+
+      const variant = product.variants?.[color];
+      if (!variant) return;
+
+      const newUrls: string[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files.item(i);
+        if (!file) continue;
+
+        const uniqueName = `${Date.now()}-${Math.random()}-${file.name}`;
+        const path = `products/${productId}/${color}/${uniqueName}`;
+
+        const uploadRef = ref(storage, path);
+        await uploadBytes(uploadRef, file);
+
+        const url = await getDownloadURL(uploadRef);
+        newUrls.push(url);
+      }
+
+      const updatedVariants = {
+        ...product.variants,
+        [color]: {
+          ...variant,
+          images: [...variant.images, ...newUrls],
+        },
+      };
+
+      await updateDoc(doc(db, "products", productId), {
+        variants: updatedVariants,
+      });
+
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId ? { ...p, variants: updatedVariants } : p
+        )
+      );
+
+      showToast("New images added to variant!", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to upload images.", "error");
+    }
+  };
+
+  const handleDeleteVariantImage = async (
+    productId: string,
+    color: string,
+    imageUrl: string
+  ) => {
+    try {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return;
+
+      const variant = product.variants?.[color];
+      if (!variant) return;
+
+      // remove from storage
+      const path = decodeURIComponent(imageUrl.split("/o/")[1].split("?")[0]);
+      await deleteObject(ref(storage, path));
+
+      const updatedImages = variant.images.filter(
+        (i: string) => i !== imageUrl
+      );
+
+      const updatedVariants = {
+        ...product.variants,
+        [color]: { ...variant, images: updatedImages },
+      };
+
+      await updateDoc(doc(db, "products", productId), {
+        variants: updatedVariants,
+      });
+
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId ? { ...p, variants: updatedVariants } : p
+        )
+      );
+
+      showToast("Image removed from variant.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to remove image.", "error");
+    }
+  };
+
   // ✏️ Update Product Name
   const handleUpdateName = async (p: any, newName: string) => {
     try {
@@ -655,6 +795,9 @@ export default function ProductManager() {
             handleAddSizeToVariant,
             handleUpdateVariantSize,
             handleDeleteSizeFromVariant,
+            handleUpdateColorMeta,
+            handleDeleteVariantImage,
+            handleAddVariantImages,
           }}
         />
       )}

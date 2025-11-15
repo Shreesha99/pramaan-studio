@@ -570,7 +570,10 @@ export default function ProductsPage() {
                                     ? "border-black scale-110 shadow-sm"
                                     : "border-gray-300 hover:border-gray-400"
                                 }`}
-                                style={{ backgroundColor: clr }}
+                                style={{
+                                  backgroundColor:
+                                    p?.variants?.[clr]?.hex || clr,
+                                }}
                                 title={clr}
                               />
                             ))}
